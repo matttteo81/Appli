@@ -160,6 +160,86 @@ end;
 $$;
 
 -- =====================================================================
+-- Fonction : créer un couple (et rattacher le créateur)
+-- Sécurisée : génère un code unique, crée le couple, l'animal, et lie
+-- le profil du créateur. Évite d'exposer la table couples en écriture.
+-- =====================================================================
+create or replace function public.create_couple()
+returns public.couples
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  new_code text;
+  new_couple public.couples;
+  attempts int := 0;
+begin
+  if (select couple_id from public.profiles where id = auth.uid()) is not null then
+    raise exception 'Tu fais déjà partie d''un couple.';
+  end if;
+  loop
+    new_code := '';
+    for i in 1..6 loop
+      new_code := new_code ||
+        substr('ABCDEFGHJKMNPQRSTUVWXYZ23456789', 1 + floor(random() * 31)::int, 1);
+    end loop;
+    begin
+      insert into public.couples (invite_code) values (new_code)
+        returning * into new_couple;
+      exit;
+    exception when unique_violation then
+      attempts := attempts + 1;
+      if attempts > 10 then
+        raise exception 'Impossible de générer un code, réessaie.';
+      end if;
+    end;
+  end loop;
+  update public.profiles
+    set couple_id = new_couple.id, updated_at = now()
+    where id = auth.uid();
+  insert into public.pets (couple_id) values (new_couple.id)
+    on conflict (couple_id) do nothing;
+  return new_couple;
+end;
+$$;
+
+-- =====================================================================
+-- Fonction : rejoindre un couple avec un code
+-- Sécurisée : recherche par code exact SANS exposer la table couples,
+-- refuse si déjà en couple ou si le couple est complet (2 membres).
+-- =====================================================================
+create or replace function public.join_couple_by_code(p_code text)
+returns public.couples
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  target public.couples;
+  member_count int;
+begin
+  if (select couple_id from public.profiles where id = auth.uid()) is not null then
+    raise exception 'Tu fais déjà partie d''un couple.';
+  end if;
+  select * into target from public.couples
+    where invite_code = upper(trim(p_code));
+  if not found then
+    raise exception 'Code invalide. Vérifie les lettres.';
+  end if;
+  select count(*) into member_count from public.profiles
+    where couple_id = target.id;
+  if member_count >= 2 then
+    raise exception 'Ce couple est déjà complet.';
+  end if;
+  update public.profiles
+    set couple_id = target.id, updated_at = now()
+    where id = auth.uid();
+  return target;
+end;
+$$;
+
+-- =====================================================================
 -- Sécurité par ligne (Row Level Security)
 -- =====================================================================
 alter table public.couples          enable row level security;
@@ -172,16 +252,16 @@ alter table public.playlist_tracks  enable row level security;
 alter table public.nudges           enable row level security;
 
 -- --- couples ---------------------------------------------------------
--- Tout le monde connecté peut lire un couple par son code (pour rejoindre)
--- et lire son propre couple. On garde simple : lecture autorisée aux
--- utilisateurs authentifiés, écriture/maj réservée aux membres.
+-- Lecture réservée aux MEMBRES du couple (les codes ne sont donc pas
+-- exposés). La création et l'adhésion passent par les fonctions
+-- sécurisées create_couple() / join_couple_by_code() ci-dessus.
 drop policy if exists couples_select on public.couples;
 create policy couples_select on public.couples
-  for select to authenticated using (true);
+  for select to authenticated
+  using (id = public.current_couple_id());
 
+-- (Plus de politique d'INSERT directe : on passe par create_couple().)
 drop policy if exists couples_insert on public.couples;
-create policy couples_insert on public.couples
-  for insert to authenticated with check (true);
 
 drop policy if exists couples_update on public.couples;
 create policy couples_update on public.couples
@@ -277,6 +357,20 @@ create policy photos_storage_delete on storage.objects
     bucket_id = 'photos'
     and (storage.foldername(name))[1] = public.current_couple_id()::text
   );
+
+-- =====================================================================
+-- Permissions des fonctions : réservées aux utilisateurs CONNECTÉS
+-- (empêche un visiteur anonyme d'appeler ces fonctions).
+-- =====================================================================
+revoke execute on function public.current_couple_id() from anon, public;
+revoke execute on function public.create_couple() from anon, public;
+revoke execute on function public.join_couple_by_code(text) from anon, public;
+revoke execute on function public.feed_pet(uuid, uuid) from anon, public;
+
+grant execute on function public.current_couple_id() to authenticated;
+grant execute on function public.create_couple() to authenticated;
+grant execute on function public.join_couple_by_code(text) to authenticated;
+grant execute on function public.feed_pet(uuid, uuid) to authenticated;
 
 -- =====================================================================
 -- Fin du schéma

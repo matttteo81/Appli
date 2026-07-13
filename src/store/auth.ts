@@ -22,16 +22,6 @@ type AuthState = {
   joinCouple: (code: string) => Promise<void>;
 };
 
-/** Génère un code d'invitation lisible (6 caractères sans ambiguïté). */
-function generateInviteCode(): string {
-  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += alphabet[Math.floor(Math.random() * alphabet.length)];
-  }
-  return code;
-}
-
 export const useAuth = create<AuthState>((set, get) => ({
   initialized: false,
   loading: false,
@@ -172,53 +162,25 @@ export const useAuth = create<AuthState>((set, get) => ({
     const profile = get().profile;
     if (!profile) throw new Error('Profil introuvable');
 
-    const code = generateInviteCode();
-    const { data: couple, error } = await supabase
-      .from('couples')
-      .insert({ invite_code: code })
-      .select('*')
-      .single();
+    // Création sécurisée côté serveur (génère le code, crée l'animal,
+    // rattache le créateur). Voir la fonction SQL create_couple().
+    const { data, error } = await supabase.rpc('create_couple');
     if (error) throw error;
 
-    // On rattache le profil au couple.
-    await supabase
-      .from('profiles')
-      .update({ couple_id: couple.id })
-      .eq('id', profile.id);
-
-    // On crée l'animal virtuel du couple (une seule fois).
-    await supabase.from('pets').insert({ couple_id: couple.id }).select();
-
     await get().refresh();
-    return code;
+    return (data as Couple).invite_code;
   },
 
   async joinCouple(code) {
     const profile = get().profile;
     if (!profile) throw new Error('Profil introuvable');
 
-    const cleaned = code.trim().toUpperCase();
-    const { data: couple, error } = await supabase
-      .from('couples')
-      .select('*')
-      .eq('invite_code', cleaned)
-      .maybeSingle();
+    // Adhésion sécurisée côté serveur (recherche par code sans exposer
+    // la table couples). Voir la fonction SQL join_couple_by_code().
+    const { error } = await supabase.rpc('join_couple_by_code', {
+      p_code: code.trim().toUpperCase(),
+    });
     if (error) throw error;
-    if (!couple) throw new Error('Code invalide. Vérifie les lettres.');
-
-    // Sécurité : on refuse si le couple a déjà 2 membres.
-    const { count } = await supabase
-      .from('profiles')
-      .select('id', { count: 'exact', head: true })
-      .eq('couple_id', couple.id);
-    if ((count ?? 0) >= 2) {
-      throw new Error('Ce couple est déjà complet.');
-    }
-
-    await supabase
-      .from('profiles')
-      .update({ couple_id: couple.id })
-      .eq('id', profile.id);
 
     await get().refresh();
   },

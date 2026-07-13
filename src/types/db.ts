@@ -112,6 +112,14 @@ export type Database = {
         Args: { p_couple: string; p_user: string };
         Returns: Pet;
       };
+      create_couple: {
+        Args: Record<string, never>;
+        Returns: Couple;
+      };
+      join_couple_by_code: {
+        Args: { p_code: string };
+        Returns: Couple;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
