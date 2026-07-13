@@ -1,25 +1,37 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   FlatList,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import MapView, { Marker, Polyline } from 'react-native-maps';
+import Constants from 'expo-constants';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Button, Input, Screen, ThemedText } from '../../src/components/ui';
-import { colors } from '../../src/theme/colors';
+import { colors, skyGradients } from '../../src/theme/colors';
 import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useAuth } from '../../src/store/auth';
-import { CITIES, City, searchCities } from '../../src/lib/cities';
+import { City, searchCities } from '../../src/lib/cities';
 import { distanceKm } from '../../src/lib/geo';
+
+// Dans Expo Go, le module natif de la carte n'existe pas : on le charge
+// seulement dans un development build (via require paresseux).
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+const canUseNativeMap = !isExpoGo && Platform.OS !== 'web';
+const CoupleMap = canUseNativeMap
+  ? (require('../../src/components/CoupleMap').default as React.ComponentType<{
+      profile: any;
+      partner: any;
+    }>)
+  : null;
 
 export default function MapScreen() {
   const profile = useAuth((s) => s.profile);
   const partner = useAuth((s) => s.partner);
   const updateProfile = useAuth((s) => s.updateProfile);
-  const mapRef = useRef<MapView>(null);
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -50,79 +62,55 @@ export default function MapScreen() {
       city_lng: city.lng,
       timezone: city.timezone,
     });
-    // On ajuste la carte pour voir les deux villes.
-    setTimeout(() => fitBoth(city), 400);
-  };
-
-  const fitBoth = (mine?: City) => {
-    const points: { latitude: number; longitude: number }[] = [];
-    const myLat = mine?.lat ?? profile?.city_lat;
-    const myLng = mine?.lng ?? profile?.city_lng;
-    if (myLat != null && myLng != null)
-      points.push({ latitude: myLat, longitude: myLng });
-    if (partnerHasCity)
-      points.push({
-        latitude: partner!.city_lat!,
-        longitude: partner!.city_lng!,
-      });
-    if (points.length > 0) {
-      mapRef.current?.fitToCoordinates(points, {
-        edgePadding: { top: 120, bottom: 120, left: 80, right: 80 },
-        animated: true,
-      });
-    }
-  };
-
-  const initialRegion = {
-    latitude: profile?.city_lat ?? 46.6,
-    longitude: profile?.city_lng ?? 2.4,
-    latitudeDelta: 40,
-    longitudeDelta: 40,
   };
 
   return (
     <Screen edges={['top']}>
       <View style={{ flex: 1 }}>
-        <MapView
-          ref={mapRef}
-          style={StyleSheet.absoluteFill}
-          initialRegion={initialRegion}
-          onMapReady={() => fitBoth()}
-        >
-          {meHasCity && (
-            <Marker
-              coordinate={{
-                latitude: profile!.city_lat!,
-                longitude: profile!.city_lng!,
-              }}
-              title={profile?.display_name ?? 'Moi'}
-              description={profile?.city_name ?? ''}
-              pinColor={colors.ambre}
-            />
-          )}
-          {partnerHasCity && (
-            <Marker
-              coordinate={{
-                latitude: partner!.city_lat!,
-                longitude: partner!.city_lng!,
-              }}
-              title={partner?.display_name ?? 'Ma moitié'}
-              description={partner?.city_name ?? ''}
-              pinColor={colors.corail}
-            />
-          )}
-          {meHasCity && partnerHasCity && (
-            <Polyline
-              coordinates={[
-                { latitude: profile!.city_lat!, longitude: profile!.city_lng! },
-                { latitude: partner!.city_lat!, longitude: partner!.city_lng! },
-              ]}
-              strokeColor={colors.corail}
-              strokeWidth={3}
-              lineDashPattern={[6, 6]}
-            />
-          )}
-        </MapView>
+        {/* La vraie carte (dev build) OU un aperçu (Expo Go) */}
+        {CoupleMap ? (
+          <CoupleMap profile={profile} partner={partner} />
+        ) : (
+          <LinearGradient
+            colors={skyGradients.jour}
+            style={StyleSheet.absoluteFill}
+          >
+            <View style={styles.placeholder}>
+              <Text style={{ fontSize: 60 }}>🗺️</Text>
+              <ThemedText
+                variant="title"
+                center
+                color={colors.encre}
+                style={{ marginTop: spacing.md }}
+              >
+                Aperçu de la carte
+              </ThemedText>
+              <ThemedText
+                variant="body"
+                center
+                color={colors.encre}
+                style={{ marginTop: 6, opacity: 0.8, paddingHorizontal: spacing.lg }}
+              >
+                La vraie carte interactive s'affichera dans la version complète
+                de l'appli. Ici, tu peux déjà choisir ta ville et voir la
+                distance.
+              </ThemedText>
+
+              <View style={styles.cityCards}>
+                <CityChip
+                  emoji="🟠"
+                  name={profile?.display_name ?? 'Moi'}
+                  city={profile?.city_name ?? null}
+                />
+                <CityChip
+                  emoji="🔴"
+                  name={partner?.display_name ?? 'Ma moitié'}
+                  city={partner?.city_name ?? null}
+                />
+              </View>
+            </View>
+          </LinearGradient>
+        )}
 
         {/* Bandeau distance en haut */}
         <View style={styles.topBanner} pointerEvents="none">
@@ -139,9 +127,7 @@ export default function MapScreen() {
         <View style={styles.bottomBar}>
           <Button
             title={
-              meHasCity
-                ? `Ma ville : ${profile?.city_name}`
-                : 'Choisir ma ville'
+              meHasCity ? `Ma ville : ${profile?.city_name}` : 'Choisir ma ville'
             }
             onPress={() => setPickerOpen(true)}
           />
@@ -177,10 +163,7 @@ export default function MapScreen() {
               keyExtractor={(c) => `${c.name}-${c.country}`}
               keyboardShouldPersistTaps="handled"
               renderItem={({ item }) => (
-                <Pressable
-                  onPress={() => chooseCity(item)}
-                  style={styles.cityRow}
-                >
+                <Pressable onPress={() => chooseCity(item)} style={styles.cityRow}>
                   <View>
                     <ThemedText variant="bodyMedium">{item.name}</ThemedText>
                     <ThemedText variant="body" color={colors.texteGris}>
@@ -208,7 +191,46 @@ export default function MapScreen() {
   );
 }
 
+function CityChip({
+  emoji,
+  name,
+  city,
+}: {
+  emoji: string;
+  name: string;
+  city: string | null;
+}) {
+  return (
+    <View style={styles.chip}>
+      <Text style={{ fontSize: 18 }}>{emoji}</Text>
+      <View style={{ flex: 1 }}>
+        <ThemedText variant="bodyMedium" color={colors.encre} numberOfLines={1}>
+          {name}
+        </ThemedText>
+        <ThemedText variant="body" color={colors.encre} numberOfLines={1} style={{ opacity: 0.7 }}>
+          {city ?? 'Ville non choisie'}
+        </ThemedText>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  placeholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  cityCards: { marginTop: spacing.xl, width: '100%', gap: spacing.sm },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
   topBanner: {
     position: 'absolute',
     top: spacing.md,
@@ -226,11 +248,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
   },
-  pillText: {
-    color: colors.creme,
-    fontFamily: fonts.monoMedium,
-    fontSize: 15,
-  },
+  pillText: { color: colors.creme, fontFamily: fonts.monoMedium, fontSize: 15 },
   bottomBar: {
     position: 'absolute',
     bottom: spacing.lg,
