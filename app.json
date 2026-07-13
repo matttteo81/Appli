@@ -52,6 +52,12 @@
         {
           "photosPermission": "Fil a besoin d'accéder à tes photos pour les ajouter à votre album partagé."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#F2A65A"
+        }
       ]
     ],
     "extra": {
