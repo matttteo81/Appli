@@ -1,0 +1,103 @@
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, momentForHour, skyGradients } from '../theme/colors';
+import { fonts } from '../theme/typography';
+import { localHour, localTime } from '../lib/geo';
+
+type Side = {
+  name: string;
+  city: string | null;
+  timezone: string | null;
+};
+
+/**
+ * Deux moitiés de ciel. Chaque côté a un dégradé selon l'heure locale de
+ * la personne (aube / jour / crépuscule / nuit) et affiche son heure.
+ */
+export function TwinSky({ me, partner }: { me: Side; partner: Side }) {
+  // On rafraîchit l'heure chaque minute.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 30 * 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <View style={styles.row}>
+      <SkyHalf side={me} align="flex-start" />
+      <SkyHalf side={partner} align="flex-end" />
+      <View style={styles.seam} />
+    </View>
+  );
+}
+
+function SkyHalf({
+  side,
+  align,
+}: {
+  side: Side;
+  align: 'flex-start' | 'flex-end';
+}) {
+  const tz =
+    side.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const hour = localHour(tz);
+  const moment = momentForHour(hour);
+  const gradient = skyGradients[moment];
+  const textColor = moment === 'jour' ? colors.encre : colors.creme;
+
+  return (
+    <LinearGradient
+      colors={gradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
+      style={[styles.half, { alignItems: align }]}
+    >
+      <Text style={[styles.emoji]}>{momentEmoji(moment)}</Text>
+      <Text style={[styles.time, { color: textColor }]}>
+        {localTime(tz)}
+      </Text>
+      <Text style={[styles.name, { color: textColor }]} numberOfLines={1}>
+        {side.name}
+      </Text>
+      <Text style={[styles.city, { color: textColor }]} numberOfLines={1}>
+        {side.city ?? 'Ville non choisie'}
+      </Text>
+    </LinearGradient>
+  );
+}
+
+function momentEmoji(m: ReturnType<typeof momentForHour>): string {
+  switch (m) {
+    case 'aube':
+      return '🌅';
+    case 'jour':
+      return '☀️';
+    case 'crepuscule':
+      return '🌇';
+    case 'nuit':
+      return '🌙';
+  }
+}
+
+const styles = StyleSheet.create({
+  row: { flexDirection: 'row', height: 200, position: 'relative' },
+  half: {
+    flex: 1,
+    padding: 18,
+    justifyContent: 'center',
+    gap: 2,
+  },
+  seam: {
+    position: 'absolute',
+    left: '50%',
+    top: 0,
+    bottom: 0,
+    width: 1,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  emoji: { fontSize: 26, marginBottom: 4 },
+  time: { fontFamily: fonts.monoMedium, fontSize: 34, letterSpacing: 1 },
+  name: { fontFamily: fonts.displayMedium, fontSize: 18, marginTop: 2 },
+  city: { fontFamily: fonts.bodyRegular, fontSize: 13, opacity: 0.9 },
+});

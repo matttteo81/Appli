@@ -1,0 +1,236 @@
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
+import { decode } from 'base64-arraybuffer';
+import {
+  Button,
+  EmptyState,
+  Input,
+  Screen,
+  ScreenHeader,
+  ThemedText,
+} from '../../src/components/ui';
+import { colors } from '../../src/theme/colors';
+import { radius, spacing } from '../../src/theme/typography';
+import { useCoupleTable } from '../../src/hooks/useCoupleTable';
+import { useAuth } from '../../src/store/auth';
+import { supabase } from '../../src/lib/supabase';
+import type { Photo } from '../../src/types/db';
+
+const GAP = 4;
+const COLS = 3;
+const SIZE = (Dimensions.get('window').width - GAP * (COLS - 1)) / COLS;
+
+export default function Album() {
+  const { rows, loading } = useCoupleTable<Photo>('photos');
+  const couple = useAuth((s) => s.couple);
+  const profile = useAuth((s) => s.profile);
+
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const [uploading, setUploading] = useState(false);
+  const [pending, setPending] = useState<{ base64: string; ext: string } | null>(
+    null,
+  );
+  const [caption, setCaption] = useState('');
+  const [viewer, setViewer] = useState<Photo | null>(null);
+
+  // On génère des URLs signées pour afficher les photos (bucket privé).
+  useEffect(() => {
+    const paths = rows.map((r) => r.storage_path).filter((p) => !urls[p]);
+    if (paths.length === 0) return;
+    (async () => {
+      const { data } = await supabase.storage
+        .from('photos')
+        .createSignedUrls(paths, 60 * 60);
+      if (data) {
+        setUrls((prev) => {
+          const next = { ...prev };
+          data.forEach((d) => {
+            if (d.signedUrl && d.path) next[d.path] = d.signedUrl;
+          });
+          return next;
+        });
+      }
+    })();
+  }, [rows, urls]);
+
+  const pick = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        'Accès aux photos refusé',
+        'Autorise l’accès dans les réglages pour ajouter des photos.',
+      );
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.6,
+      base64: true,
+    });
+    if (res.canceled || !res.assets[0]?.base64) return;
+    const asset = res.assets[0];
+    const ext = (asset.uri.split('.').pop() || 'jpg').toLowerCase();
+    setPending({ base64: asset.base64!, ext: ext === 'png' ? 'png' : 'jpg' });
+    setCaption('');
+  };
+
+  const upload = async () => {
+    if (!pending || !couple || !profile) return;
+    setUploading(true);
+    try {
+      const path = `${couple.id}/${Date.now()}.${pending.ext}`;
+      const { error: upErr } = await supabase.storage
+        .from('photos')
+        .upload(path, decode(pending.base64), {
+          contentType: pending.ext === 'png' ? 'image/png' : 'image/jpeg',
+        });
+      if (upErr) throw upErr;
+
+      await supabase.from('photos').insert({
+        couple_id: couple.id,
+        author_id: profile.id,
+        storage_path: path,
+        caption: caption.trim() || null,
+      });
+      setPending(null);
+      setCaption('');
+    } catch (e: any) {
+      Alert.alert('Envoi impossible', e?.message ?? 'Réessaie.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <Screen>
+      <ScreenHeader title="Album" subtitle="Vos souvenirs partagés" />
+      <FlatList
+        data={rows}
+        keyExtractor={(p) => p.id}
+        numColumns={COLS}
+        columnWrapperStyle={{ gap: GAP }}
+        contentContainerStyle={{ gap: GAP, padding: spacing.md, paddingBottom: 160 }}
+        ListEmptyComponent={
+          loading ? (
+            <ActivityIndicator color={colors.prune} style={{ marginTop: 40 }} />
+          ) : (
+            <EmptyState
+              emoji="📸"
+              title="Album vide"
+              subtitle="Ajoutez votre première photo ci-dessous."
+            />
+          )
+        }
+        renderItem={({ item }) => (
+          <Pressable onPress={() => setViewer(item)}>
+            <Image
+              source={{ uri: urls[item.storage_path] }}
+              style={styles.thumb}
+              contentFit="cover"
+              transition={200}
+            />
+          </Pressable>
+        )}
+      />
+
+      <View style={styles.addBar}>
+        <Button title="＋ Ajouter une photo" onPress={pick} />
+      </View>
+
+      {/* Aperçu + légende avant envoi */}
+      <Modal visible={!!pending} transparent animationType="slide">
+        <Pressable style={styles.backdrop} onPress={() => setPending(null)} />
+        <View style={styles.sheet}>
+          <ThemedText variant="title" center>
+            Ajouter une légende
+          </ThemedText>
+          {pending ? (
+            <Image
+              source={{ uri: `data:image/${pending.ext};base64,${pending.base64}` }}
+              style={styles.preview}
+              contentFit="cover"
+            />
+          ) : null}
+          <Input
+            placeholder="Une petite légende…"
+            value={caption}
+            onChangeText={setCaption}
+          />
+          <Button
+            title="Ajouter à l'album"
+            onPress={upload}
+            loading={uploading}
+          />
+        </View>
+      </Modal>
+
+      {/* Visionneuse plein écran */}
+      <Modal visible={!!viewer} transparent animationType="fade">
+        <Pressable style={styles.viewer} onPress={() => setViewer(null)}>
+          {viewer ? (
+            <>
+              <Image
+                source={{ uri: urls[viewer.storage_path] }}
+                style={styles.full}
+                contentFit="contain"
+              />
+              {viewer.caption ? (
+                <Text style={styles.viewerCaption}>{viewer.caption}</Text>
+              ) : null}
+            </>
+          ) : null}
+        </Pressable>
+      </Modal>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  thumb: { width: SIZE, height: SIZE, borderRadius: 6, backgroundColor: colors.cremeDoux },
+  addBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: spacing.md,
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.creme,
+    borderTopWidth: 1,
+    borderTopColor: colors.bordure,
+  },
+  backdrop: { flex: 1, backgroundColor: colors.overlay },
+  sheet: {
+    backgroundColor: colors.creme,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    gap: spacing.md,
+  },
+  preview: { width: '100%', height: 260, borderRadius: radius.md },
+  viewer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  full: { width: '100%', height: '80%' },
+  viewerCaption: {
+    color: '#fff',
+    fontSize: 16,
+    padding: spacing.lg,
+    textAlign: 'center',
+  },
+});
