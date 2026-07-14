@@ -17,10 +17,12 @@ create extension if not exists "pgcrypto";
 -- rejoindre.
 -- ---------------------------------------------------------------------
 create table if not exists public.couples (
-  id           uuid primary key default gen_random_uuid(),
-  invite_code  text unique not null,
-  reunion_date timestamptz,
-  created_at   timestamptz not null default now()
+  id             uuid primary key default gen_random_uuid(),
+  invite_code    text unique not null,
+  reunion_date   timestamptz,
+  together_since date,
+  home_photo_path text,
+  created_at     timestamptz not null default now()
 );
 
 -- ---------------------------------------------------------------------
@@ -36,6 +38,9 @@ create table if not exists public.profiles (
   city_lng     double precision,
   timezone     text,
   push_token   text,
+  mood_emoji      text,
+  mood_label      text,
+  mood_updated_at timestamptz,
   couple_id    uuid references public.couples(id) on delete set null,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
@@ -102,6 +107,7 @@ create table if not exists public.playlist_tracks (
   author_id  uuid not null references public.profiles(id) on delete cascade,
   title      text not null,
   artist     text not null default '',
+  artwork_url text,
   created_at timestamptz not null default now()
 );
 create index if not exists playlist_couple_idx on public.playlist_tracks(couple_id, created_at desc);

@@ -51,15 +51,6 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="rituals"
-          options={{
-            title: 'Rituels',
-            tabBarIcon: ({ focused }) => (
-              <TabIcon emoji="✨" focused={focused} />
-            ),
-          }}
-        />
-        <Tabs.Screen
           name="pet"
           options={{
             title: 'Oiseau',

@@ -1,5 +1,12 @@
-import React, { useState } from 'react';
-import { Pressable, View, Text, StyleSheet, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  Pressable,
+  View,
+  Text,
+  StyleSheet,
+  Alert,
+  Keyboard,
+} from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
 import { fonts } from '../theme/typography';
@@ -17,6 +24,30 @@ export function MissYouButton({ bottom = 90 }: { bottom?: number }) {
   const couple = useAuth((s) => s.couple);
   const [sending, setSending] = useState(false);
   const [justSent, setJustSent] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  // On masque le cœur quand le clavier est ouvert, pour ne pas gêner
+  // le champ de saisie (Mots, Playlist…).
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardWillShow', () =>
+      setKeyboardOpen(true),
+    );
+    const showA = Keyboard.addListener('keyboardDidShow', () =>
+      setKeyboardOpen(true),
+    );
+    const hide = Keyboard.addListener('keyboardWillHide', () =>
+      setKeyboardOpen(false),
+    );
+    const hideA = Keyboard.addListener('keyboardDidHide', () =>
+      setKeyboardOpen(false),
+    );
+    return () => {
+      show.remove();
+      showA.remove();
+      hide.remove();
+      hideA.remove();
+    };
+  }, []);
 
   const onPress = async () => {
     if (sending) return;
@@ -58,6 +89,8 @@ export function MissYouButton({ bottom = 90 }: { bottom?: number }) {
       setSending(false);
     }
   };
+
+  if (keyboardOpen) return null;
 
   return (
     <Pressable

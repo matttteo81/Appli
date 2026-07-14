@@ -7,6 +7,8 @@ export type Couple = {
   id: string;
   invite_code: string;
   reunion_date: string | null;
+  together_since: string | null;
+  home_photo_path: string | null;
   created_at: string;
 };
 
@@ -19,6 +21,9 @@ export type Profile = {
   city_lng: number | null;
   timezone: string | null;
   push_token: string | null;
+  mood_emoji: string | null;
+  mood_label: string | null;
+  mood_updated_at: string | null;
   couple_id: string | null;
   created_at: string;
   updated_at: string;
@@ -67,6 +72,7 @@ export type Track = {
   author_id: string;
   title: string;
   artist: string;
+  artwork_url: string | null;
   created_at: string;
 };
 
