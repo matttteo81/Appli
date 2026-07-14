@@ -85,6 +85,25 @@ export type Nudge = {
   created_at: string;
 };
 
+export type Countdown = {
+  id: string;
+  couple_id: string;
+  title: string;
+  emoji: string;
+  date: string; // YYYY-MM-DD
+  created_at: string;
+};
+
+export type DailyAnswer = {
+  id: string;
+  couple_id: string;
+  author_id: string;
+  question_date: string; // YYYY-MM-DD
+  question_text: string;
+  answer: string;
+  created_at: string;
+};
+
 type Row<T> = T;
 type Insert<T> = Partial<T>;
 type Update<T> = Partial<T>;
@@ -107,6 +126,8 @@ export type Database = {
       photos: TableDef<Photo>;
       playlist_tracks: TableDef<Track>;
       nudges: TableDef<Nudge>;
+      countdowns: TableDef<Countdown>;
+      daily_answers: TableDef<DailyAnswer>;
     };
     Views: Record<string, never>;
     Functions: {

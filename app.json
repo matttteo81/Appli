@@ -58,6 +58,12 @@
         {
           "color": "#F2A65A"
         }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Fil utilise Face ID pour verrouiller l'application et protéger votre intimité."
+        }
       ]
     ],
     "extra": {

@@ -7,7 +7,9 @@ type TableName =
   | 'rituals'
   | 'photos'
   | 'playlist_tracks'
-  | 'nudges';
+  | 'nudges'
+  | 'countdowns'
+  | 'daily_answers';
 
 /**
  * Charge les lignes d'une table pour le couple courant et se met à jour

@@ -16,11 +16,15 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { decode } from 'base64-arraybuffer';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Switch } from 'react-native';
 import { Button, Card, ThemedText } from '../../src/components/ui';
 import { TwinSky } from '../../src/components/TwinSky';
+import { QuestionCard } from '../../src/components/QuestionCard';
+import { CountdownsCard } from '../../src/components/CountdownsCard';
 import { colors } from '../../src/theme/colors';
 import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useAuth } from '../../src/store/auth';
+import { useLock } from '../../src/store/lock';
 import { distanceKm } from '../../src/lib/geo';
 import { MOODS } from '../../src/lib/moods';
 import { supabase } from '../../src/lib/supabase';
@@ -32,8 +36,10 @@ export default function Home() {
   const updateCouple = useAuth((s) => s.updateCouple);
   const updateProfile = useAuth((s) => s.updateProfile);
   const signOut = useAuth((s) => s.signOut);
+  const lockEnabled = useLock((s) => s.enabled);
+  const setLockEnabled = useLock((s) => s.setEnabled);
 
-  const [picker, setPicker] = useState<null | 'reunion' | 'together'>(null);
+  const [picker, setPicker] = useState<null | 'together'>(null);
   const [tempDate, setTempDate] = useState<Date>(new Date());
   const [moodOpen, setMoodOpen] = useState(false);
   const [bgUrl, setBgUrl] = useState<string | null>(null);
@@ -69,29 +75,26 @@ export default function Home() {
     return null;
   }, [profile, partner]);
 
-  const reunionCd = useCountdown(couple?.reunion_date ?? null);
   const together = useElapsed(couple?.together_since ?? null);
 
-  const openDate = (which: 'reunion' | 'together') => {
-    const current =
-      which === 'reunion'
-        ? couple?.reunion_date
-          ? new Date(couple.reunion_date)
-          : plusDays(30)
-        : couple?.together_since
-          ? new Date(couple.together_since)
-          : new Date();
-    setTempDate(current);
-    setPicker(which);
+  const openTogether = () => {
+    setTempDate(couple?.together_since ? new Date(couple.together_since) : new Date());
+    setPicker('together');
   };
 
   const saveDate = async () => {
-    if (picker === 'reunion') {
-      await updateCouple({ reunion_date: tempDate.toISOString() });
-    } else if (picker === 'together') {
-      await updateCouple({ together_since: toISODate(tempDate) });
-    }
+    await updateCouple({ together_since: toISODate(tempDate) });
     setPicker(null);
+  };
+
+  const toggleLock = async (v: boolean) => {
+    const ok = await setLockEnabled(v);
+    if (!ok && v) {
+      Alert.alert(
+        'Face ID indisponible',
+        'Active d’abord Face ID ou un code sur ton iPhone (Réglages).',
+      );
+    }
   };
 
   const chooseMood = async (emoji: string, label: string) => {
@@ -192,6 +195,9 @@ export default function Home() {
             </View>
           </Card>
 
+          {/* Question du jour */}
+          <QuestionCard />
+
           {/* Invitation */}
           {!partner && couple && (
             <Card color={colors.prune}>
@@ -232,7 +238,7 @@ export default function Home() {
                 Réglez la date de votre mise en couple 💞
               </ThemedText>
             )}
-            <Pressable onPress={() => openDate('together')} style={{ marginTop: spacing.sm }}>
+            <Pressable onPress={openTogether} style={{ marginTop: spacing.sm }}>
               <ThemedText variant="bodyMedium" color={colors.corail}>
                 {couple?.together_since ? 'Modifier la date' : 'Choisir la date'}
               </ThemedText>
@@ -256,33 +262,8 @@ export default function Home() {
             )}
           </Card>
 
-          {/* Retrouvailles */}
-          <Card>
-            <ThemedText variant="label" color={colors.texteGris}>
-              PROCHAINES RETROUVAILLES
-            </ThemedText>
-            {couple?.reunion_date && reunionCd ? (
-              <>
-                <View style={styles.countRow}>
-                  <CountUnit value={reunionCd.days} label="jours" />
-                  <CountUnit value={reunionCd.hours} label="heures" />
-                  <CountUnit value={reunionCd.minutes} label="min" />
-                </View>
-                <ThemedText variant="body" color={colors.texteGris} style={{ marginTop: 8 }}>
-                  {formatDateFr(new Date(couple.reunion_date))}
-                </ThemedText>
-              </>
-            ) : (
-              <ThemedText variant="body" color={colors.texteGris} style={{ marginTop: 6 }}>
-                Aucune date fixée.
-              </ThemedText>
-            )}
-            <Pressable onPress={() => openDate('reunion')} style={{ marginTop: spacing.md }}>
-              <ThemedText variant="bodyMedium" color={colors.corail}>
-                {couple?.reunion_date ? 'Modifier la date' : 'Choisir une date'}
-              </ThemedText>
-            </Pressable>
-          </Card>
+          {/* Comptes à rebours multiples */}
+          <CountdownsCard />
 
           <Button
             title={uploadingBg ? 'Envoi…' : '🖼️ Changer la photo d’accueil'}
@@ -291,11 +272,27 @@ export default function Home() {
             loading={uploadingBg}
           />
 
-          <Pressable onPress={signOut} style={{ alignItems: 'center', marginTop: spacing.sm }}>
-            <ThemedText variant="body" color={bgUrl ? colors.creme : colors.texteGris}>
-              Se déconnecter
-            </ThemedText>
-          </Pressable>
+          {/* Réglages */}
+          <Card>
+            <View style={styles.settingRow}>
+              <View style={{ flex: 1 }}>
+                <ThemedText variant="bodyMedium">Verrouiller avec Face ID</ThemedText>
+                <ThemedText variant="body" color={colors.texteGris}>
+                  Demande Face ID à l’ouverture de Fil
+                </ThemedText>
+              </View>
+              <Switch
+                value={lockEnabled}
+                onValueChange={toggleLock}
+                trackColor={{ true: colors.sauge }}
+              />
+            </View>
+            <Pressable onPress={signOut} style={{ marginTop: spacing.md }}>
+              <ThemedText variant="bodyMedium" color={colors.corail}>
+                Se déconnecter
+              </ThemedText>
+            </Pressable>
+          </Card>
         </View>
       </ScrollView>
 
@@ -324,15 +321,14 @@ export default function Home() {
         <Pressable style={styles.backdrop} onPress={() => setPicker(null)} />
         <View style={styles.sheet}>
           <ThemedText variant="title" center>
-            {picker === 'reunion' ? 'Date des retrouvailles' : 'Ensemble depuis le…'}
+            Ensemble depuis le…
           </ThemedText>
           <View style={{ alignItems: 'center' }}>
             <DateTimePicker
               value={tempDate}
               mode="date"
               display={Platform.OS === 'ios' ? 'inline' : 'default'}
-              maximumDate={picker === 'together' ? new Date() : undefined}
-              minimumDate={picker === 'reunion' ? new Date() : undefined}
+              maximumDate={new Date()}
               onChange={(_e, d) => d && setTempDate(d)}
             />
           </View>
@@ -350,22 +346,6 @@ function CountUnit({ value, label }: { value: number; label: string }) {
       <Text style={styles.countLabel}>{label}</Text>
     </View>
   );
-}
-
-function useCountdown(dateStr: string | null) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(t);
-  }, []);
-  if (!dateStr) return null;
-  let diff = Math.max(0, new Date(dateStr).getTime() - now);
-  const days = Math.floor(diff / 86400000);
-  diff -= days * 86400000;
-  const hours = Math.floor(diff / 3600000);
-  diff -= hours * 3600000;
-  const minutes = Math.floor(diff / 60000);
-  return { days, hours, minutes };
 }
 
 /** Durée écoulée en années / mois / jours depuis une date. */
@@ -392,11 +372,6 @@ function useElapsed(dateStr: string | null) {
   return { years: Math.max(0, years), months: Math.max(0, months), days: Math.max(0, days) };
 }
 
-function plusDays(n: number): Date {
-  const d = new Date();
-  d.setDate(d.getDate() + n);
-  return d;
-}
 function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
@@ -427,6 +402,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   moodOption: { width: '22%', alignItems: 'center', gap: 4, paddingVertical: spacing.sm },
+  settingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   codeBox: {
     backgroundColor: colors.encreDoux,
     borderRadius: radius.md,

@@ -126,6 +126,34 @@ create table if not exists public.nudges (
 );
 create index if not exists nudges_to_idx on public.nudges(to_id, created_at desc);
 
+-- ---------------------------------------------------------------------
+-- Table : countdowns (comptes à rebours multiples)
+-- ---------------------------------------------------------------------
+create table if not exists public.countdowns (
+  id         uuid primary key default gen_random_uuid(),
+  couple_id  uuid not null references public.couples(id) on delete cascade,
+  title      text not null,
+  emoji      text not null default '📅',
+  date       date not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists countdowns_couple_idx on public.countdowns(couple_id, date);
+
+-- ---------------------------------------------------------------------
+-- Table : daily_answers (réponses à la question du jour)
+-- ---------------------------------------------------------------------
+create table if not exists public.daily_answers (
+  id            uuid primary key default gen_random_uuid(),
+  couple_id     uuid not null references public.couples(id) on delete cascade,
+  author_id     uuid not null references public.profiles(id) on delete cascade,
+  question_date date not null,
+  question_text text not null,
+  answer        text not null,
+  created_at    timestamptz not null default now(),
+  unique (couple_id, author_id, question_date)
+);
+create index if not exists daily_answers_couple_idx on public.daily_answers(couple_id, question_date desc);
+
 -- =====================================================================
 -- Fonction utilitaire : couple_id de l'utilisateur connecté
 -- =====================================================================
@@ -282,6 +310,8 @@ alter table public.pets             enable row level security;
 alter table public.photos           enable row level security;
 alter table public.playlist_tracks  enable row level security;
 alter table public.nudges           enable row level security;
+alter table public.countdowns       enable row level security;
+alter table public.daily_answers    enable row level security;
 
 -- --- couples ---------------------------------------------------------
 -- Lecture réservée aux MEMBRES du couple (les codes ne sont donc pas
@@ -327,7 +357,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array array['words','rituals','pets','photos','playlist_tracks','nudges']
+  foreach t in array array['words','rituals','pets','photos','playlist_tracks','nudges','countdowns','daily_answers']
   loop
     execute format('drop policy if exists %I_all on public.%I;', t, t);
     execute format($f$
@@ -346,7 +376,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array array['couples','profiles','words','rituals','pets','photos','playlist_tracks','nudges']
+  foreach t in array array['couples','profiles','words','rituals','pets','photos','playlist_tracks','nudges','countdowns','daily_answers']
   loop
     begin
       execute format('alter publication supabase_realtime add table public.%I;', t);

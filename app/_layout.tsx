@@ -25,6 +25,8 @@ import {
 } from '@expo-google-fonts/ibm-plex-mono';
 
 import { useAuth } from '../src/store/auth';
+import { useLock } from '../src/store/lock';
+import { LockGate } from '../src/components/LockGate';
 import { supabase } from '../src/lib/supabase';
 import { registerForPushNotifications } from '../src/lib/notifications';
 import { colors } from '../src/theme/colors';
@@ -45,10 +47,12 @@ export default function RootLayout() {
 
   const init = useAuth((s) => s.init);
   const initialized = useAuth((s) => s.initialized);
+  const initLock = useLock((s) => s.init);
 
   useEffect(() => {
     init();
-  }, [init]);
+    initLock();
+  }, [init, initLock]);
 
   if (!fontsLoaded || !initialized) {
     return (
@@ -80,6 +84,7 @@ export default function RootLayout() {
             options={{ presentation: 'transparentModal', animation: 'fade' }}
           />
         </Stack>
+        <LockGate />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
