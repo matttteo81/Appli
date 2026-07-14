@@ -166,6 +166,22 @@ create table if not exists public.messages (
 );
 create index if not exists messages_couple_idx on public.messages(couple_id, created_at desc);
 
+-- ---------------------------------------------------------------------
+-- Table : game_responses (jeux à deux — table flexible)
+-- ---------------------------------------------------------------------
+create table if not exists public.game_responses (
+  id         uuid primary key default gen_random_uuid(),
+  couple_id  uuid not null references public.couples(id) on delete cascade,
+  game       text not null,
+  item_key   text not null,
+  author_id  uuid not null references public.profiles(id) on delete cascade,
+  value      text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (couple_id, game, item_key, author_id)
+);
+create index if not exists game_responses_idx on public.game_responses(couple_id, game);
+
 -- =====================================================================
 -- Fonction utilitaire : couple_id de l'utilisateur connecté
 -- =====================================================================
@@ -325,6 +341,7 @@ alter table public.nudges           enable row level security;
 alter table public.countdowns       enable row level security;
 alter table public.daily_answers    enable row level security;
 alter table public.messages         enable row level security;
+alter table public.game_responses   enable row level security;
 
 -- --- couples ---------------------------------------------------------
 -- Lecture réservée aux MEMBRES du couple (les codes ne sont donc pas
@@ -370,7 +387,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array array['words','rituals','pets','photos','playlist_tracks','nudges','countdowns','daily_answers','messages']
+  foreach t in array array['words','rituals','pets','photos','playlist_tracks','nudges','countdowns','daily_answers','messages','game_responses']
   loop
     execute format('drop policy if exists %I_all on public.%I;', t, t);
     execute format($f$
@@ -389,7 +406,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array array['couples','profiles','words','rituals','pets','photos','playlist_tracks','nudges','countdowns','daily_answers','messages']
+  foreach t in array array['couples','profiles','words','rituals','pets','photos','playlist_tracks','nudges','countdowns','daily_answers','messages','game_responses']
   loop
     begin
       execute format('alter publication supabase_realtime add table public.%I;', t);

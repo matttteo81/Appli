@@ -10,7 +10,8 @@ type TableName =
   | 'nudges'
   | 'countdowns'
   | 'daily_answers'
-  | 'messages';
+  | 'messages'
+  | 'game_responses';
 
 /**
  * Charge les lignes d'une table pour le couple courant et se met à jour

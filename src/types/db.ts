@@ -46,6 +46,17 @@ export type Message = {
   created_at: string;
 };
 
+export type GameResponse = {
+  id: string;
+  couple_id: string;
+  game: string; // 'qui' | 'know_self' | 'know_guess' | 'q36'
+  item_key: string;
+  author_id: string;
+  value: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Ritual = {
   id: string;
   couple_id: string;
@@ -137,6 +148,7 @@ export type Database = {
       countdowns: TableDef<Countdown>;
       daily_answers: TableDef<DailyAnswer>;
       messages: TableDef<Message>;
+      game_responses: TableDef<GameResponse>;
     };
     Views: Record<string, never>;
     Functions: {

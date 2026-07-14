@@ -51,6 +51,15 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen
+          name="games"
+          options={{
+            title: 'Jeux',
+            tabBarIcon: ({ focused }) => (
+              <TabIcon emoji="🎮" focused={focused} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="pet"
           options={{
             title: 'Oiseau',
