@@ -25,6 +25,7 @@
   "submit": {
     "production": {
       "ios": {
+        "ascAppId": "6790730066",
         "ascApiKeyPath": "./asc-key.p8",
         "ascApiKeyId": "7584B8B9RS",
         "ascApiKeyIssuerId": "0f05567b-4244-4855-8738-3ba68fd4d6ce"
