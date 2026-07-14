@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { decode } from 'base64-arraybuffer';
@@ -38,6 +39,7 @@ export default function Home() {
   const signOut = useAuth((s) => s.signOut);
   const lockEnabled = useLock((s) => s.enabled);
   const setLockEnabled = useLock((s) => s.setEnabled);
+  const router = useRouter();
 
   const [picker, setPicker] = useState<null | 'together'>(null);
   const [tempDate, setTempDate] = useState<Date>(new Date());
@@ -194,6 +196,24 @@ export default function Home() {
               </View>
             </View>
           </Card>
+
+          {/* Ensemble (séance synchronisée) */}
+          <Pressable onPress={() => router.push('/ensemble')}>
+            <Card color={colors.prune}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                <Text style={{ fontSize: 34 }}>🎬</Text>
+                <View style={{ flex: 1 }}>
+                  <ThemedText variant="title" color={colors.creme}>
+                    Ensemble
+                  </ThemedText>
+                  <ThemedText variant="body" color={colors.cremeDoux}>
+                    Regarder / écouter en même temps, synchronisés
+                  </ThemedText>
+                </View>
+                <Text style={{ fontSize: 22, color: colors.creme }}>›</Text>
+              </View>
+            </Card>
+          </Pressable>
 
           {/* Question du jour */}
           <QuestionCard />

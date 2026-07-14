@@ -81,6 +81,7 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="pair" />
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="ensemble" />
           <Stack.Screen
             name="nudge"
             options={{ presentation: 'transparentModal', animation: 'fade' }}
@@ -121,8 +122,9 @@ function AuthGate() {
       if (!inPair) router.replace('/pair');
       return;
     }
-    // Connecté + en couple : on autorise les onglets et le popup nudge.
-    const allowed = group === '(tabs)' || group === 'nudge';
+    // Connecté + en couple : on autorise les onglets, le popup nudge
+    // et l'écran « Ensemble ».
+    const allowed = group === '(tabs)' || group === 'nudge' || group === 'ensemble';
     if (!allowed) {
       router.replace('/(tabs)');
     }

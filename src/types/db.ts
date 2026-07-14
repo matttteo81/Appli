@@ -46,6 +46,15 @@ export type Message = {
   created_at: string;
 };
 
+export type WatchSession = {
+  couple_id: string;
+  title: string | null;
+  is_playing: boolean;
+  base_seconds: number;
+  base_at: string;
+  updated_at: string;
+};
+
 export type GameResponse = {
   id: string;
   couple_id: string;
@@ -149,6 +158,7 @@ export type Database = {
       daily_answers: TableDef<DailyAnswer>;
       messages: TableDef<Message>;
       game_responses: TableDef<GameResponse>;
+      watch_sessions: TableDef<WatchSession>;
     };
     Views: Record<string, never>;
     Functions: {
