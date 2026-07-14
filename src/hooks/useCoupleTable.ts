@@ -9,7 +9,8 @@ type TableName =
   | 'playlist_tracks'
   | 'nudges'
   | 'countdowns'
-  | 'daily_answers';
+  | 'daily_answers'
+  | 'messages';
 
 /**
  * Charge les lignes d'une table pour le couple courant et se met à jour

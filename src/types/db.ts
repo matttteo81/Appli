@@ -38,6 +38,14 @@ export type Word = {
   created_at: string;
 };
 
+export type Message = {
+  id: string;
+  couple_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
+};
+
 export type Ritual = {
   id: string;
   couple_id: string;
@@ -128,6 +136,7 @@ export type Database = {
       nudges: TableDef<Nudge>;
       countdowns: TableDef<Countdown>;
       daily_answers: TableDef<DailyAnswer>;
+      messages: TableDef<Message>;
     };
     Views: Record<string, never>;
     Functions: {

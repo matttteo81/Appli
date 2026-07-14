@@ -42,9 +42,9 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="words"
+          name="messages"
           options={{
-            title: 'Mots',
+            title: 'Messages',
             tabBarIcon: ({ focused }) => (
               <TabIcon emoji="💬" focused={focused} />
             ),
