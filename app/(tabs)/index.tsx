@@ -28,6 +28,7 @@ import { useAuth } from '../../src/store/auth';
 import { useLock } from '../../src/store/lock';
 import { distanceKm } from '../../src/lib/geo';
 import { MOODS } from '../../src/lib/moods';
+import { fetchWeather, Weather } from '../../src/lib/weather';
 import { supabase } from '../../src/lib/supabase';
 
 export default function Home() {
@@ -46,6 +47,29 @@ export default function Home() {
   const [moodOpen, setMoodOpen] = useState(false);
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [uploadingBg, setUploadingBg] = useState(false);
+  const [myWeather, setMyWeather] = useState<Weather | null>(null);
+  const [partnerWeather, setPartnerWeather] = useState<Weather | null>(null);
+
+  // Météo de chacun (rafraîchie au montage et toutes les 15 min).
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      if (profile?.city_lat != null && profile?.city_lng != null) {
+        const w = await fetchWeather(profile.city_lat, profile.city_lng);
+        if (active) setMyWeather(w);
+      }
+      if (partner?.city_lat != null && partner?.city_lng != null) {
+        const w = await fetchWeather(partner.city_lat, partner.city_lng);
+        if (active) setPartnerWeather(w);
+      }
+    };
+    load();
+    const t = setInterval(load, 15 * 60 * 1000);
+    return () => {
+      active = false;
+      clearInterval(t);
+    };
+  }, [profile?.city_lat, profile?.city_lng, partner?.city_lat, partner?.city_lng]);
 
   // URL signée de la photo d'accueil.
   useEffect(() => {
@@ -161,11 +185,13 @@ export default function Home() {
             name: profile?.display_name ?? 'Moi',
             city: profile?.city_name ?? null,
             timezone: profile?.timezone ?? null,
+            weather: myWeather,
           }}
           partner={{
             name: partner?.display_name ?? 'Ta moitié',
             city: partner?.city_name ?? null,
             timezone: partner?.timezone ?? null,
+            weather: partnerWeather,
           }}
         />
 

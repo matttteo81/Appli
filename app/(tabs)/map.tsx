@@ -9,8 +9,11 @@ import {
   View,
 } from 'react-native';
 import Constants from 'expo-constants';
+import * as Location from 'expo-location';
+import { Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Button, Input, Screen, ThemedText } from '../../src/components/ui';
+import { fetchWeather } from '../../src/lib/weather';
 import { colors, skyGradients } from '../../src/theme/colors';
 import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useAuth } from '../../src/store/auth';
@@ -35,6 +38,43 @@ export default function MapScreen() {
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [locating, setLocating] = useState(false);
+
+  const useExactLocation = async () => {
+    setLocating(true);
+    try {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert(
+          'Localisation refusée',
+          'Autorise la localisation dans les réglages pour utiliser ta position exacte.',
+        );
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const { latitude, longitude } = pos.coords;
+      // Nom de la ville (géocodage inverse) + fuseau horaire (via météo).
+      let cityName = 'Ma position';
+      try {
+        const geo = await Location.reverseGeocodeAsync({ latitude, longitude });
+        const g = geo[0];
+        if (g) cityName = [g.city ?? g.subregion, g.country].filter(Boolean).join(', ');
+      } catch {}
+      const w = await fetchWeather(latitude, longitude);
+      await updateProfile({
+        city_name: cityName,
+        city_lat: latitude,
+        city_lng: longitude,
+        timezone: w?.timezone ?? profile?.timezone ?? null,
+      });
+    } catch (e: any) {
+      Alert.alert('Oups', e?.message ?? 'Localisation impossible.');
+    } finally {
+      setLocating(false);
+    }
+  };
 
   const meHasCity = profile?.city_lat != null && profile?.city_lng != null;
   const partnerHasCity = partner?.city_lat != null && partner?.city_lng != null;
@@ -123,13 +163,28 @@ export default function MapScreen() {
           </View>
         </View>
 
-        {/* Bouton choisir ma ville */}
+        {/* Boutons localisation */}
         <View style={styles.bottomBar}>
+          {meHasCity ? (
+            <ThemedText
+              variant="label"
+              color={colors.creme}
+              center
+              style={{ marginBottom: spacing.sm, textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 4 }}
+            >
+              📍 {profile?.city_name}
+            </ThemedText>
+          ) : null}
           <Button
-            title={
-              meHasCity ? `Ma ville : ${profile?.city_name}` : 'Choisir ma ville'
-            }
+            title={locating ? 'Localisation…' : '📍 Ma position exacte'}
+            onPress={useExactLocation}
+            loading={locating}
+          />
+          <Button
+            title="Ou choisir une ville"
+            variant="ghost"
             onPress={() => setPickerOpen(true)}
+            style={{ marginTop: spacing.sm }}
           />
         </View>
       </View>

@@ -64,6 +64,12 @@
         {
           "faceIDPermission": "Fil utilise Face ID pour verrouiller l'application et protéger votre intimité."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Fil utilise ta position pour afficher ta ville, la distance et la météo à ta moitié."
+        }
       ]
     ],
     "extra": {

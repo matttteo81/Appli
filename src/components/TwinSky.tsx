@@ -4,11 +4,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, momentForHour, skyGradients } from '../theme/colors';
 import { fonts } from '../theme/typography';
 import { localHour, localTime } from '../lib/geo';
+import type { Weather } from '../lib/weather';
 
 type Side = {
   name: string;
   city: string | null;
   timezone: string | null;
+  weather?: Weather | null;
 };
 
 /**
@@ -63,6 +65,11 @@ function SkyHalf({
       <Text style={[styles.city, { color: textColor }]} numberOfLines={1}>
         {side.city ?? 'Ville non choisie'}
       </Text>
+      {side.weather ? (
+        <Text style={[styles.weather, { color: textColor }]} numberOfLines={1}>
+          {side.weather.emoji} {side.weather.temp}° · {side.weather.label}
+        </Text>
+      ) : null}
     </LinearGradient>
   );
 }
@@ -100,4 +107,5 @@ const styles = StyleSheet.create({
   time: { fontFamily: fonts.monoMedium, fontSize: 34, letterSpacing: 1 },
   name: { fontFamily: fonts.displayMedium, fontSize: 18, marginTop: 2 },
   city: { fontFamily: fonts.bodyRegular, fontSize: 13, opacity: 0.9 },
+  weather: { fontFamily: fonts.bodyMedium, fontSize: 12, marginTop: 3, opacity: 0.95 },
 });
