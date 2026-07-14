@@ -63,12 +63,25 @@ export const useAuth = create<AuthState>((set, get) => ({
     if (!profile) {
       const displayName =
         (session.user.user_metadata?.display_name as string) ?? 'Moi';
+      // upsert (au lieu d'insert) : évite l'erreur de conflit si deux
+      // rafraîchissements tentent de créer le profil en même temps.
       const { data: created } = await supabase
         .from('profiles')
-        .insert({ id: userId, display_name: displayName })
+        .upsert({ id: userId, display_name: displayName }, { onConflict: 'id' })
         .select('*')
         .single();
-      profile = created ?? null;
+      if (created) {
+        profile = created;
+      } else {
+        // Filet de sécurité : un appel concurrent a peut-être créé le profil,
+        // on le relit plutôt que de laisser le profil à null.
+        const { data: refetched } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+        profile = refetched ?? null;
+      }
     }
     set({ profile: profile as Profile | null });
 
