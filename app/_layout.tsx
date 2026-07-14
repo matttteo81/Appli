@@ -1,5 +1,5 @@
 import 'react-native-gesture-handler';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -27,6 +27,7 @@ import {
 import { useAuth } from '../src/store/auth';
 import { useLock } from '../src/store/lock';
 import { LockGate } from '../src/components/LockGate';
+import { AnimatedSplash } from '../src/components/AnimatedSplash';
 import { supabase } from '../src/lib/supabase';
 import { registerForPushNotifications } from '../src/lib/notifications';
 import { colors } from '../src/theme/colors';
@@ -48,6 +49,7 @@ export default function RootLayout() {
   const init = useAuth((s) => s.init);
   const initialized = useAuth((s) => s.initialized);
   const initLock = useLock((s) => s.init);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     init();
@@ -85,6 +87,7 @@ export default function RootLayout() {
           />
         </Stack>
         <LockGate />
+        {showSplash && <AnimatedSplash onDone={() => setShowSplash(false)} />}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
