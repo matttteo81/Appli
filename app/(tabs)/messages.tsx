@@ -28,7 +28,6 @@ import { useAuth } from '../../src/store/auth';
 import { supabase } from '../../src/lib/supabase';
 import type { Message } from '../../src/types/db';
 import { BUILTIN_GIFS, gifSource } from '../../src/lib/gifs';
-import { makeGifFromPhotos } from '../../src/lib/makegif';
 
 export default function Messages() {
   const { rows, loading } = useCoupleTable<Message>('messages', 'created_at', false);
@@ -83,6 +82,8 @@ export default function Messages() {
     }
     setBusy(true);
     try {
+      // Chargé à la demande (garde jpeg-js/gifenc hors du démarrage).
+      const { makeGifFromPhotos } = await import('../../src/lib/makegif');
       const uris = res.assets.map((a) => a.uri);
       const bytes = await makeGifFromPhotos(uris, 500);
       const path = `${couple!.id}/${Date.now()}.gif`;
