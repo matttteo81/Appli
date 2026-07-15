@@ -45,6 +45,8 @@ export type Message = {
   author_id: string;
   body: string | null;
   image_url: string | null;
+  reactions: Record<string, string>;
+  reply_to: string | null;
   created_at: string;
 };
 
@@ -220,6 +222,10 @@ export type Database = {
       farm_rebirth: {
         Args: { p_animal: string };
         Returns: FarmAnimal;
+      };
+      react_to_message: {
+        Args: { p_message: string; p_emoji: string };
+        Returns: void;
       };
       create_couple: {
         Args: Record<string, never>;

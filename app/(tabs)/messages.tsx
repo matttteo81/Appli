@@ -29,6 +29,8 @@ import { supabase } from '../../src/lib/supabase';
 import type { Message } from '../../src/types/db';
 import { BUILTIN_GIFS, gifSource } from '../../src/lib/gifs';
 
+const MSG_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
+
 export default function Messages() {
   const { rows, loading } = useCoupleTable<Message>('messages', 'created_at', false);
   const couple = useAuth((s) => s.couple);
@@ -37,16 +39,38 @@ export default function Messages() {
   const [gifOpen, setGifOpen] = useState(false);
   const [tab, setTab] = useState<'gifs' | 'create'>('gifs');
   const [busy, setBusy] = useState(false);
+  const [actionMsg, setActionMsg] = useState<Message | null>(null);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+
+  const msgById = React.useMemo(() => {
+    const m: Record<string, Message> = {};
+    for (const r of rows) m[r.id] = r;
+    return m;
+  }, [rows]);
 
   const send = async () => {
     const body = text.trim();
     if (!body || !couple || !profile) return;
     setText('');
+    const replyId = replyTo?.id ?? null;
+    setReplyTo(null);
     await supabase.from('messages').insert({
       couple_id: couple.id,
       author_id: profile.id,
       body,
+      reply_to: replyId,
     });
+  };
+
+  const react = async (message: Message, emoji: string) => {
+    setActionMsg(null);
+    await supabase.rpc('react_to_message', { p_message: message.id, p_emoji: emoji });
+  };
+
+  const previewOf = (m: Message | undefined) => {
+    if (!m) return 'Message supprimé';
+    if (m.image_url) return '🎞️ GIF';
+    return m.body ?? '';
   };
 
   const sendGif = async (imageUrl: string) => {
@@ -132,6 +156,8 @@ export default function Messages() {
             renderItem={({ item }) => {
               const mine = item.author_id === profile?.id;
               const src = item.image_url ? gifSource(item.image_url) : null;
+              const reactionEmojis = Object.values(item.reactions ?? {});
+              const repliedTo = item.reply_to ? msgById[item.reply_to] : undefined;
               return (
                 <View
                   style={[
@@ -139,28 +165,78 @@ export default function Messages() {
                     { justifyContent: mine ? 'flex-end' : 'flex-start' },
                   ]}
                 >
-                  {src ? (
-                    <View style={styles.gifWrap}>
-                      <Image source={src} style={styles.gif} contentFit="cover" />
-                      <Text style={[styles.gifTime, { color: colors.texteGris }]}>
-                        {formatTime(item.created_at)}
-                      </Text>
-                    </View>
-                  ) : (
-                    <View style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
-                      <Text style={[styles.body, { color: mine ? colors.creme : colors.encre }]}>
-                        {item.body}
-                      </Text>
-                      <Text style={[styles.time, { color: mine ? 'rgba(251,246,239,0.7)' : colors.texteGris }]}>
-                        {formatTime(item.created_at)}
-                      </Text>
-                    </View>
-                  )}
+                  <Pressable
+                    onLongPress={() => setActionMsg(item)}
+                    delayLongPress={250}
+                    style={{ maxWidth: '80%' }}
+                  >
+                    {/* Extrait du message auquel on répond */}
+                    {item.reply_to ? (
+                      <View
+                        style={[
+                          styles.replySnippet,
+                          { alignSelf: mine ? 'flex-end' : 'flex-start' },
+                        ]}
+                      >
+                        <Text style={styles.replySnippetText} numberOfLines={1}>
+                          ↩︎ {previewOf(repliedTo)}
+                        </Text>
+                      </View>
+                    ) : null}
+
+                    {src ? (
+                      <View style={[styles.gifWrap, { alignSelf: mine ? 'flex-end' : 'flex-start' }]}>
+                        <Image source={src} style={styles.gif} contentFit="cover" />
+                        <Text style={[styles.gifTime, { color: colors.texteGris }]}>
+                          {formatTime(item.created_at)}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View
+                        style={[
+                          styles.bubble,
+                          mine ? styles.mine : styles.theirs,
+                          { alignSelf: mine ? 'flex-end' : 'flex-start' },
+                        ]}
+                      >
+                        <Text style={[styles.body, { color: mine ? colors.creme : colors.encre }]}>
+                          {item.body}
+                        </Text>
+                        <Text style={[styles.time, { color: mine ? 'rgba(251,246,239,0.7)' : colors.texteGris }]}>
+                          {formatTime(item.created_at)}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Réactions posées sur le message */}
+                    {reactionEmojis.length > 0 ? (
+                      <View style={[styles.reactionsRow, { alignSelf: mine ? 'flex-end' : 'flex-start' }]}>
+                        {reactionEmojis.map((e, i) => (
+                          <Text key={i} style={styles.reactionBadge}>{e}</Text>
+                        ))}
+                      </View>
+                    ) : null}
+                  </Pressable>
                 </View>
               );
             }}
           />
         )}
+
+        {/* Aperçu du message auquel on répond */}
+        {replyTo ? (
+          <View style={styles.replyBar}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.replyBarLabel}>Réponse à</Text>
+              <Text style={styles.replyBarText} numberOfLines={1}>
+                {previewOf(replyTo)}
+              </Text>
+            </View>
+            <Pressable onPress={() => setReplyTo(null)} hitSlop={10}>
+              <Text style={styles.replyBarClose}>✕</Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         <View style={styles.inputBar}>
           <Pressable onPress={() => { setGifOpen(true); setTab('gifs'); }} style={styles.gifBtn}>
@@ -183,6 +259,27 @@ export default function Messages() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Menu réactions / répondre (appui long) */}
+      <Modal visible={!!actionMsg} transparent animationType="fade" onRequestClose={() => setActionMsg(null)}>
+        <Pressable style={styles.actionBackdrop} onPress={() => setActionMsg(null)}>
+          <View style={styles.actionSheet}>
+            <View style={styles.reactPickRow}>
+              {MSG_REACTIONS.map((e) => (
+                <Pressable key={e} onPress={() => actionMsg && react(actionMsg, e)} style={styles.reactPick}>
+                  <Text style={{ fontSize: 30 }}>{e}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Pressable
+              style={styles.replyAction}
+              onPress={() => { setReplyTo(actionMsg); setActionMsg(null); }}
+            >
+              <Text style={styles.replyActionText}>↩︎  Répondre</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
 
       {/* Sélecteur de GIF */}
       <Modal visible={gifOpen} transparent animationType="slide" onRequestClose={() => setGifOpen(false)}>
@@ -259,6 +356,64 @@ const styles = StyleSheet.create({
   gifWrap: { alignItems: 'flex-end' },
   gif: { width: 160, height: 160, borderRadius: radius.lg, backgroundColor: colors.cremeDoux },
   gifTime: { fontFamily: fonts.bodyMedium, fontSize: 10, marginTop: 3 },
+  replySnippet: {
+    backgroundColor: 'rgba(74,59,107,0.12)',
+    borderLeftWidth: 3,
+    borderLeftColor: colors.prune,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 2,
+    maxWidth: '100%',
+  },
+  replySnippetText: { fontFamily: fonts.bodyRegular, fontSize: 12, color: colors.texteGris },
+  reactionsRow: {
+    flexDirection: 'row',
+    gap: 2,
+    marginTop: -6,
+    backgroundColor: colors.creme,
+    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: colors.bordure,
+  },
+  reactionBadge: { fontSize: 13 },
+  replyBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    backgroundColor: colors.cremeDoux,
+    borderTopWidth: 1,
+    borderTopColor: colors.bordure,
+  },
+  replyBarLabel: { fontFamily: fonts.bodySemiBold, fontSize: 11, color: colors.prune },
+  replyBarText: { fontFamily: fonts.bodyRegular, fontSize: 14, color: colors.texteGris },
+  replyBarClose: { fontSize: 18, color: colors.texteGris, paddingHorizontal: 4 },
+  actionBackdrop: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionSheet: {
+    backgroundColor: colors.creme,
+    borderRadius: radius.xl,
+    padding: spacing.md,
+    gap: spacing.sm,
+    width: '86%',
+  },
+  reactPickRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  reactPick: { padding: 6 },
+  replyAction: {
+    borderTopWidth: 1,
+    borderTopColor: colors.bordure,
+    paddingTop: spacing.md,
+    alignItems: 'center',
+  },
+  replyActionText: { fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.prune },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
