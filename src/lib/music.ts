@@ -48,6 +48,9 @@ export function openInLinks(title: string, artist: string) {
     appleMusic: `https://music.apple.com/search?term=${q}`,
     deezer: `https://www.deezer.com/search/${q}`,
     youtubeMusic: `https://music.youtube.com/search?q=${q}`,
+    // Services chinois (pour la moitié en Chine)
+    qqMusic: `https://y.qq.com/n/ryqq/search?w=${q}`,
+    netease: `https://music.163.com/#/search/m/?s=${q}&type=1`,
   };
 }
 
@@ -61,4 +64,6 @@ export const MUSIC_SERVICES: {
   { key: 'appleMusic', label: 'Apple Music', emoji: '🍎', color: '#FA243C' },
   { key: 'deezer', label: 'Deezer', emoji: '🎧', color: '#A238FF' },
   { key: 'youtubeMusic', label: 'YT Music', emoji: '▶️', color: '#FF0000' },
+  { key: 'qqMusic', label: 'QQ Music', emoji: '🐧', color: '#31C27C' },
+  { key: 'netease', label: 'NetEase', emoji: '🎵', color: '#C20C0C' },
 ];

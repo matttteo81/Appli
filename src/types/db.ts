@@ -43,7 +43,8 @@ export type Message = {
   id: string;
   couple_id: string;
   author_id: string;
-  body: string;
+  body: string | null;
+  image_url: string | null;
   created_at: string;
 };
 
