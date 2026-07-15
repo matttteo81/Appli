@@ -113,6 +113,7 @@ export type Farm = {
   active_species: string | null;
   active_name: string | null;
   active_feeds: number;
+  active_color: number;
   last_grown_at: string | null;
   created_at: string;
 };
@@ -122,6 +123,7 @@ export type FarmResident = {
   couple_id: string;
   species: string;
   name: string | null;
+  color: number;
   x: number;
   y: number;
   born_at: string;

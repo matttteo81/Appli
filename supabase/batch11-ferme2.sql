@@ -14,9 +14,12 @@ create table if not exists public.farm (
   active_species text,            -- espèce en cours d'élevage (null = repos)
   active_name    text,            -- prénom donné à l'éclosion
   active_feeds   integer not null default 0,
+  active_color   integer not null default 0,  -- couleur de pelage (0..5)
   last_grown_at  timestamptz,     -- quand le dernier animal est devenu adulte
   created_at     timestamptz not null default now()
 );
+-- (si la table existait déjà sans la colonne)
+alter table public.farm add column if not exists active_color integer not null default 0;
 
 -- Animaux devenus adultes : ils restent à la ferme et se baladent.
 create table if not exists public.farm_residents (
@@ -24,11 +27,13 @@ create table if not exists public.farm_residents (
   couple_id  uuid not null references public.couples(id) on delete cascade,
   species    text not null,
   name       text,
+  color      integer not null default 0,
   x          real not null default 0.5,  -- position 0..1 dans le champ
   y          real not null default 0.5,
   born_at    timestamptz not null default now(),
   grown_at   timestamptz not null default now()
 );
+alter table public.farm_residents add column if not exists color integer not null default 0;
 create index if not exists farm_residents_couple_idx on public.farm_residents(couple_id);
 
 -- Journal des nourrissages : 1 par personne et par jour.
@@ -73,8 +78,8 @@ returns public.farm language plpgsql security definer set search_path = public a
 declare f public.farm;
 begin
   if p_couple is distinct from public.current_couple_id() then raise exception 'Pas ton couple.'; end if;
-  insert into public.farm (couple_id, active_species)
-    values (p_couple, public._pf_species())
+  insert into public.farm (couple_id, active_species, active_color)
+    values (p_couple, public._pf_species(), floor(random()*6)::int)
     on conflict (couple_id) do nothing;
   select * into f from public.farm where couple_id = p_couple;
   return f;
@@ -95,8 +100,8 @@ begin
   end;
   update public.farm set active_feeds = active_feeds + 1 where couple_id = p_couple returning * into f;
   if f.active_feeds >= 30 then
-    insert into public.farm_residents (couple_id, species, name, x, y)
-      values (p_couple, f.active_species, coalesce(nullif(f.active_name,''), f.active_species),
+    insert into public.farm_residents (couple_id, species, name, color, x, y)
+      values (p_couple, f.active_species, coalesce(nullif(f.active_name,''), f.active_species), f.active_color,
               0.12 + random()*0.76, 0.25 + random()*0.65);
     update public.farm set active_species = null, active_name = null, active_feeds = 0, last_grown_at = now()
       where couple_id = p_couple returning * into f;
@@ -125,7 +130,8 @@ begin
   if f.last_grown_at is not null and now() - f.last_grown_at < interval '2 days' then
     raise exception 'Encore un peu de repos avant un nouvel œuf 🥚';
   end if;
-  update public.farm set active_species = public._pf_species(), active_name = null, active_feeds = 0
+  update public.farm set active_species = public._pf_species(), active_name = null, active_feeds = 0,
+    active_color = floor(random()*6)::int
     where couple_id = p_couple returning * into f;
   return f;
 end; $$;

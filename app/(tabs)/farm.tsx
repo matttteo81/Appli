@@ -84,7 +84,7 @@ export default function FarmScreen() {
 
   const feeds = farm?.active_feeds ?? 0;
   const active = farm?.active_species
-    ? { species: farm.active_species, feeds, name: farm.active_name }
+    ? { species: farm.active_species, feeds, name: farm.active_name, color: farm.active_color ?? 0 }
     : null;
   const hatched = !!active && feeds >= HATCH_AT;
   const needsName = hatched && !farm?.active_name;

@@ -12,9 +12,9 @@ import Svg, {
   Stop,
 } from 'react-native-svg';
 import type { FarmResident } from '../types/db';
-import { SPRITES, activeDisplay, houseFor } from '../lib/farmpixel';
+import { activeDisplay, houseFor, residentSprite } from '../lib/farmpixel';
 
-type ActiveInfo = { species: string; feeds: number; name: string | null } | null;
+type ActiveInfo = { species: string; feeds: number; name: string | null; color: number } | null;
 
 type Props = {
   residents: FarmResident[];
@@ -129,7 +129,7 @@ export function PixelFarm({ residents, active, night }: Props) {
   const zzz: React.ReactNode[] = [];
 
   residents.forEach((r, i) => {
-    const sp = SPRITES[r.species] ?? SPRITES.hen;
+    const sp = residentSprite(r.species, r.color ?? 0);
     const dispH = h * 0.11;
     const dispW = dispH * (sp.w / sp.h);
     const left = r.x * w - dispW / 2;
@@ -158,7 +158,7 @@ export function PixelFarm({ residents, active, night }: Props) {
   // Animal en cours d'élevage, au centre
   let activeNode: React.ReactNode = null;
   if (active) {
-    const { sprite, scale } = activeDisplay(active.species, active.feeds);
+    const { sprite, scale } = activeDisplay(active.species, active.color, active.feeds);
     const dispH = h * 0.15 * scale;
     const dispW = dispH * (sprite.w / sprite.h);
     const left = w / 2 - dispW / 2;
