@@ -18,6 +18,7 @@ import { useAuth } from '../../src/store/auth';
 import { supabase } from '../../src/lib/supabase';
 import type { FarmAnimal } from '../../src/types/db';
 import { animalStage } from '../../src/lib/farm';
+import { FarmScene } from '../../src/components/FarmScene';
 
 export default function FarmScreen() {
   const couple = useAuth((s) => s.couple);
@@ -67,6 +68,8 @@ export default function FarmScreen() {
   }, [couple, refresh]);
 
   const stage = active ? animalStage(active) : null;
+  const hour = new Date().getHours();
+  const isNight = hour < 7 || hour >= 20;
 
   const feed = async () => {
     if (!active || !profile) return;
@@ -119,19 +122,21 @@ export default function FarmScreen() {
         <ScrollView
           contentContainerStyle={{ padding: spacing.lg, gap: spacing.lg, paddingBottom: 140 }}
         >
-          {/* Scène de l'animal en cours d'élevage */}
-          <View style={styles.stage}>
-            {stage ? (
-              <Animated.Text style={[{ fontSize: stage.size }, { transform: [{ scale }] }]}>
-                {reborn ? '✨' : stage.emoji}
-              </Animated.Text>
-            ) : null}
-            <View style={styles.stageBadge}>
-              <Text style={styles.stageBadgeText}>
-                {reborn ? 'Une nouvelle vie ✨' : `Gen. ${active?.generation ?? 1} · ${stage?.label}`}
-              </Text>
-            </View>
-          </View>
+          {/* Scène de ferme animée */}
+          {stage ? (
+            <FarmScene
+              activeEmoji={reborn ? '✨' : stage.emoji}
+              activeSize={stage.size}
+              activeScale={scale}
+              badge={
+                reborn
+                  ? 'Une nouvelle vie ✨'
+                  : `Gen. ${active?.generation ?? 1} · ${stage.label}`
+              }
+              herd={herd.map((a) => ({ id: a.id, species: a.species }))}
+              night={isNight}
+            />
+          ) : null}
 
           {/* Progression */}
           <Card color={colors.encreDoux}>
