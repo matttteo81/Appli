@@ -114,6 +114,7 @@ export type Photo = {
   author_id: string;
   storage_path: string;
   caption: string | null;
+  challenge: string | null;
   created_at: string;
 };
 

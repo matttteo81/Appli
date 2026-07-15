@@ -27,6 +27,8 @@ import { useCoupleTable } from '../../src/hooks/useCoupleTable';
 import { useAuth } from '../../src/store/auth';
 import { supabase } from '../../src/lib/supabase';
 import type { Photo } from '../../src/types/db';
+import { challengeForToday } from '../../src/lib/challenges';
+import { fonts } from '../../src/theme/typography';
 
 const GAP = 4;
 const COLS = 3;
@@ -36,6 +38,7 @@ export default function Album() {
   const { rows, loading } = useCoupleTable<Photo>('photos');
   const couple = useAuth((s) => s.couple);
   const profile = useAuth((s) => s.profile);
+  const partner = useAuth((s) => s.partner);
 
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
@@ -44,6 +47,14 @@ export default function Album() {
   );
   const [caption, setCaption] = useState('');
   const [viewer, setViewer] = useState<Photo | null>(null);
+  const [pendingChallenge, setPendingChallenge] = useState<string | null>(null);
+
+  const today = challengeForToday();
+  const todaysPhotos = rows.filter((r) => r.challenge === today.dateKey);
+  const myChallengePhoto = todaysPhotos.find((p) => p.author_id === profile?.id);
+  const theirChallengePhoto = todaysPhotos.find(
+    (p) => p.author_id === partner?.id,
+  );
 
   // On génère des URLs signées pour afficher les photos (bucket privé).
   useEffect(() => {
@@ -65,7 +76,7 @@ export default function Album() {
     })();
   }, [rows, urls]);
 
-  const pick = async () => {
+  const pick = async (forChallenge = false) => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       Alert.alert(
@@ -83,7 +94,8 @@ export default function Album() {
     const asset = res.assets[0];
     const ext = (asset.uri.split('.').pop() || 'jpg').toLowerCase();
     setPending({ base64: asset.base64!, ext: ext === 'png' ? 'png' : 'jpg' });
-    setCaption('');
+    setPendingChallenge(forChallenge ? today.dateKey : null);
+    setCaption(forChallenge ? today.text : '');
   };
 
   const upload = async () => {
@@ -103,9 +115,11 @@ export default function Album() {
         author_id: profile.id,
         storage_path: path,
         caption: caption.trim() || null,
+        challenge: pendingChallenge,
       });
       setPending(null);
       setCaption('');
+      setPendingChallenge(null);
     } catch (e: any) {
       Alert.alert('Envoi impossible', e?.message ?? 'Réessaie.');
     } finally {
@@ -122,6 +136,32 @@ export default function Album() {
         numColumns={COLS}
         columnWrapperStyle={{ gap: GAP }}
         contentContainerStyle={{ gap: GAP, padding: spacing.md, paddingBottom: 160 }}
+        ListHeaderComponent={
+          <View style={styles.challengeCard}>
+            <Text style={styles.challengeTag}>📸 DÉFI PHOTO DU JOUR</Text>
+            <ThemedText variant="title" color={colors.creme} style={{ marginTop: 4 }}>
+              {today.text}
+            </ThemedText>
+            <View style={styles.challengeSlots}>
+              <ChallengeSlot
+                label="Toi"
+                photo={myChallengePhoto}
+                url={myChallengePhoto ? urls[myChallengePhoto.storage_path] : undefined}
+                onAdd={() => pick(true)}
+                onView={() => myChallengePhoto && setViewer(myChallengePhoto)}
+                isMine
+              />
+              <ChallengeSlot
+                label={partner?.display_name ?? 'Ta moitié'}
+                photo={theirChallengePhoto}
+                url={
+                  theirChallengePhoto ? urls[theirChallengePhoto.storage_path] : undefined
+                }
+                onView={() => theirChallengePhoto && setViewer(theirChallengePhoto)}
+              />
+            </View>
+          </View>
+        }
         ListEmptyComponent={
           loading ? (
             <ActivityIndicator color={colors.prune} style={{ marginTop: 40 }} />
@@ -146,7 +186,7 @@ export default function Album() {
       />
 
       <View style={styles.addBar}>
-        <Button title="＋ Ajouter une photo" onPress={pick} />
+        <Button title="＋ Ajouter une photo" onPress={() => pick()} />
       </View>
 
       {/* Aperçu + légende avant envoi */}
@@ -197,7 +237,80 @@ export default function Album() {
   );
 }
 
+function ChallengeSlot({
+  label,
+  photo,
+  url,
+  onAdd,
+  onView,
+  isMine,
+}: {
+  label: string;
+  photo?: Photo;
+  url?: string;
+  onAdd?: () => void;
+  onView?: () => void;
+  isMine?: boolean;
+}) {
+  return (
+    <View style={styles.slot}>
+      {photo ? (
+        <Pressable onPress={onView}>
+          <Image source={{ uri: url }} style={styles.slotImg} contentFit="cover" transition={200} />
+        </Pressable>
+      ) : isMine ? (
+        <Pressable onPress={onAdd} style={[styles.slotImg, styles.slotEmpty]}>
+          <Text style={{ fontSize: 26 }}>＋</Text>
+          <Text style={styles.slotAddTxt}>Relève le défi</Text>
+        </Pressable>
+      ) : (
+        <View style={[styles.slotImg, styles.slotEmpty]}>
+          <Text style={{ fontSize: 22, opacity: 0.6 }}>⏳</Text>
+          <Text style={styles.slotWaitTxt}>En attente…</Text>
+        </View>
+      )}
+      <Text style={styles.slotLabel} numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  challengeCard: {
+    backgroundColor: colors.prune,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  challengeTag: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12,
+    letterSpacing: 1,
+    color: colors.ambre,
+  },
+  challengeSlots: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  slot: { flex: 1, alignItems: 'center', gap: 6 },
+  slotImg: {
+    width: '100%',
+    height: 120,
+    borderRadius: radius.md,
+    backgroundColor: colors.encreDoux,
+  },
+  slotEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.bordureClaire,
+    borderStyle: 'dashed',
+  },
+  slotAddTxt: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.creme, marginTop: 2 },
+  slotWaitTxt: { fontFamily: fonts.bodyRegular, fontSize: 13, color: colors.cremeDoux, marginTop: 2 },
+  slotLabel: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.creme },
   thumb: { width: SIZE, height: SIZE, borderRadius: 6, backgroundColor: colors.cremeDoux },
   addBar: {
     position: 'absolute',
