@@ -169,6 +169,7 @@ function NotificationBridge() {
           params: {
             message: String(data.message ?? 'Tu me manques'),
             from: String(data.from_name ?? ''),
+            audio: String(data.audio_url ?? ''),
           },
         });
       }
@@ -200,10 +201,14 @@ function NotificationBridge() {
           filter: `to_id=eq.${profile.id}`,
         },
         (payload) => {
-          const n = payload.new as { message?: string };
+          const n = payload.new as { message?: string; audio_url?: string };
           router.push({
             pathname: '/nudge',
-            params: { message: String(n.message ?? 'Tu me manques'), from: '' },
+            params: {
+              message: String(n.message ?? 'Tu me manques'),
+              from: '',
+              audio: String(n.audio_url ?? ''),
+            },
           });
         },
       )

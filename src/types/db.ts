@@ -110,6 +110,7 @@ export type Nudge = {
   from_id: string;
   to_id: string;
   message: string;
+  audio_url: string | null;
   created_at: string;
 };
 

@@ -12,6 +12,7 @@ import { colors } from '../theme/colors';
 import { fonts } from '../theme/typography';
 import { useAuth } from '../store/auth';
 import { supabase } from '../lib/supabase';
+import { VoiceRecorder } from './VoiceRecorder';
 
 /**
  * Bouton flottant en forme de cœur. À l'appui :
@@ -25,6 +26,7 @@ export function MissYouButton({ bottom = 90 }: { bottom?: number }) {
   const [sending, setSending] = useState(false);
   const [justSent, setJustSent] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [recorderOpen, setRecorderOpen] = useState(false);
 
   // On masque le cœur quand le clavier est ouvert, pour ne pas gêner
   // le champ de saisie (Mots, Playlist…).
@@ -90,27 +92,56 @@ export function MissYouButton({ bottom = 90 }: { bottom?: number }) {
     }
   };
 
+  const openRecorder = () => {
+    if (!partner || !couple || !profile) {
+      Alert.alert(
+        'Ta moitié n’est pas encore reliée',
+        'Partage ton code de couple depuis l’accueil pour vous relier.',
+      );
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setRecorderOpen(true);
+  };
+
   if (keyboardOpen) return null;
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.fab,
-        { bottom },
-        pressed && { transform: [{ scale: 0.92 }] },
-      ]}
-      accessibilityLabel="Envoyer « Tu me manques » à ta moitié"
-    >
-      <View style={styles.inner}>
-        <Text style={styles.heart}>{justSent ? '💛' : '🤍'}</Text>
-      </View>
-      {justSent ? (
-        <View style={styles.toast}>
-          <Text style={styles.toastText}>Envoyé 💛</Text>
+    <>
+      <Pressable
+        onPress={onPress}
+        onLongPress={openRecorder}
+        delayLongPress={280}
+        style={({ pressed }) => [
+          styles.fab,
+          { bottom },
+          pressed && { transform: [{ scale: 0.92 }] },
+        ]}
+        accessibilityLabel="Envoyer « Tu me manques » à ta moitié. Appui long pour un message vocal."
+      >
+        <View style={styles.inner}>
+          <Text style={styles.heart}>{justSent ? '💛' : '🤍'}</Text>
         </View>
+        <View style={styles.micHint}>
+          <Text style={styles.micHintText}>🎙️</Text>
+        </View>
+        {justSent ? (
+          <View style={styles.toast}>
+            <Text style={styles.toastText}>Envoyé 💛</Text>
+          </View>
+        ) : null}
+      </Pressable>
+
+      {recorderOpen && partner && couple && profile ? (
+        <VoiceRecorder
+          visible={recorderOpen}
+          onClose={() => setRecorderOpen(false)}
+          couple={couple}
+          profile={profile}
+          partner={partner}
+        />
       ) : null}
-    </Pressable>
+    </>
   );
 }
 
@@ -132,6 +163,20 @@ const styles = StyleSheet.create({
   },
   inner: { alignItems: 'center', justifyContent: 'center' },
   heart: { fontSize: 30 },
+  micHint: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.encre,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.creme,
+  },
+  micHintText: { fontSize: 11 },
   toast: {
     position: 'absolute',
     right: 70,

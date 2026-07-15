@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { to_id, from_name, message } = await req.json();
+    const { to_id, from_name, message, audio_url } = await req.json();
     if (!to_id) {
       return new Response(JSON.stringify({ error: 'to_id manquant' }), {
         status: 400,
@@ -55,7 +55,11 @@ Deno.serve(async (req) => {
     }
 
     const title = from_name ? `${from_name} pense à toi 💛` : 'Tu me manques 💛';
-    const body = message && message.length > 0 ? message : 'Tu me manques.';
+    const body = audio_url
+      ? '🎙️ t’a envoyé un message vocal'
+      : message && message.length > 0
+        ? message
+        : 'Tu me manques.';
 
     // Envoi via l'API Expo Push.
     const pushRes = await fetch('https://exp.host/--/api/v2/push/send', {
@@ -71,7 +75,12 @@ Deno.serve(async (req) => {
         sound: 'default',
         priority: 'high',
         // Ces données servent à afficher le popup plein écran à l'ouverture.
-        data: { type: 'nudge', message: body, from_name: from_name ?? '' },
+        data: {
+          type: 'nudge',
+          message: message && message.length > 0 ? message : 'Tu me manques',
+          from_name: from_name ?? '',
+          audio_url: audio_url ?? '',
+        },
       }),
     });
 

@@ -9,24 +9,36 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
+import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, skyGradients } from '../src/theme/colors';
 import { fonts } from '../src/theme/typography';
 
 export default function Nudge() {
   const router = useRouter();
-  const { message, from } = useLocalSearchParams<{
+  const { message, from, audio } = useLocalSearchParams<{
     message?: string;
     from?: string;
+    audio?: string;
   }>();
   const text = message ?? 'Tu me manques';
+  const audioUrl = audio && audio.length > 0 ? audio : null;
 
   const scale = useRef(new Animated.Value(0.6)).current;
   const pulse = useRef(new Animated.Value(1)).current;
 
+  // Lecteur audio (utilisé seulement si un message vocal est joint).
+  const player = useAudioPlayer(audioUrl ?? undefined);
+
   useEffect(() => {
-    // Lecture à voix haute du message (français).
-    Speech.speak(text, { language: 'fr-FR', pitch: 1.05, rate: 0.95 });
+    if (audioUrl) {
+      // Message vocal : on joue la vraie voix.
+      setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
+      player.play();
+    } else {
+      // Sinon, lecture à voix haute du texte (français).
+      Speech.speak(text, { language: 'fr-FR', pitch: 1.05, rate: 0.95 });
+    }
 
     // Petite animation d'apparition + battement de cœur.
     Animated.spring(scale, {
@@ -54,7 +66,17 @@ export default function Nudge() {
     return () => {
       Speech.stop();
     };
-  }, [text, scale, pulse]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, audioUrl]);
+
+  const replay = () => {
+    if (audioUrl) {
+      player.seekTo(0);
+      player.play();
+    } else {
+      Speech.speak(text, { language: 'fr-FR' });
+    }
+  };
 
   const close = () => {
     Speech.stop();
@@ -63,20 +85,21 @@ export default function Nudge() {
 
   return (
     <LinearGradient colors={skyGradients.crepuscule} style={styles.container}>
-      <Animated.View
-        style={{ alignItems: 'center', transform: [{ scale }] }}
-      >
+      <Animated.View style={{ alignItems: 'center', transform: [{ scale }] }}>
         <Animated.Text style={[styles.heart, { transform: [{ scale: pulse }] }]}>
           💛
         </Animated.Text>
-        {from ? (
-          <Text style={styles.from}>{from} pense à toi</Text>
-        ) : null}
+        {from ? <Text style={styles.from}>{from} pense à toi</Text> : null}
         <Text style={styles.message}>{text}</Text>
+        {audioUrl ? (
+          <Text style={styles.voiceTag}>🎙️ message vocal</Text>
+        ) : null}
       </Animated.View>
 
-      <Pressable style={styles.replay} onPress={() => Speech.speak(text, { language: 'fr-FR' })}>
-        <Text style={styles.replayText}>🔊 Réécouter</Text>
+      <Pressable style={styles.replay} onPress={replay}>
+        <Text style={styles.replayText}>
+          {audioUrl ? '🔊 Réécouter la voix' : '🔊 Réécouter'}
+        </Text>
       </Pressable>
 
       <Pressable style={styles.close} onPress={close}>
@@ -107,6 +130,13 @@ const styles = StyleSheet.create({
     color: colors.encre,
     textAlign: 'center',
     lineHeight: 42,
+  },
+  voiceTag: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    color: colors.encre,
+    opacity: 0.7,
+    marginTop: 12,
   },
   replay: {
     position: 'absolute',

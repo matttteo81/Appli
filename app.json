@@ -70,6 +70,12 @@
         {
           "locationWhenInUsePermission": "Fil utilise ta position pour afficher ta ville, la distance et la météo à ta moitié."
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Fil utilise le micro pour enregistrer tes messages vocaux « Tu me manques »."
+        }
       ]
     ],
     "extra": {
