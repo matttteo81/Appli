@@ -85,6 +85,19 @@ export type Pet = {
   updated_at: string;
 };
 
+export type FarmAnimal = {
+  id: string;
+  couple_id: string;
+  species: string;
+  feed_count: number;
+  is_active: boolean;
+  generation: number;
+  last_fed_by: string | null;
+  last_fed_at: string | null;
+  born_at: string;
+  grown_at: string | null;
+};
+
 export type Photo = {
   id: string;
   couple_id: string;
@@ -152,6 +165,7 @@ export type Database = {
       words: TableDef<Word>;
       rituals: TableDef<Ritual>;
       pets: TableDef<Pet>;
+      farm_animals: TableDef<FarmAnimal>;
       photos: TableDef<Photo>;
       playlist_tracks: TableDef<Track>;
       nudges: TableDef<Nudge>;
@@ -170,6 +184,18 @@ export type Database = {
       feed_pet: {
         Args: { p_couple: string; p_user: string };
         Returns: Pet;
+      };
+      ensure_farm: {
+        Args: { p_couple: string };
+        Returns: FarmAnimal;
+      };
+      feed_animal: {
+        Args: { p_animal: string };
+        Returns: FarmAnimal;
+      };
+      farm_rebirth: {
+        Args: { p_animal: string };
+        Returns: FarmAnimal;
       };
       create_couple: {
         Args: Record<string, never>;

@@ -60,11 +60,11 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="pet"
+          name="farm"
           options={{
-            title: 'Oiseau',
+            title: 'Ferme',
             tabBarIcon: ({ focused }) => (
-              <TabIcon emoji="🐣" focused={focused} />
+              <TabIcon emoji="🐾" focused={focused} />
             ),
           }}
         />
