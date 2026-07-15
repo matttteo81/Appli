@@ -85,6 +85,16 @@ export type Pet = {
   updated_at: string;
 };
 
+export type DrawingStroke = {
+  id: string;
+  couple_id: string;
+  author_id: string | null;
+  color: string;
+  width: number;
+  points: number[][]; // [[x,y],...] normalisés 0..1
+  created_at: string;
+};
+
 export type FarmAnimal = {
   id: string;
   couple_id: string;
@@ -166,6 +176,7 @@ export type Database = {
       rituals: TableDef<Ritual>;
       pets: TableDef<Pet>;
       farm_animals: TableDef<FarmAnimal>;
+      drawing_strokes: TableDef<DrawingStroke>;
       photos: TableDef<Photo>;
       playlist_tracks: TableDef<Track>;
       nudges: TableDef<Nudge>;
