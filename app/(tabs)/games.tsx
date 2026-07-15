@@ -15,11 +15,17 @@ import { radius, spacing } from '../../src/theme/typography';
 import { QuiGame } from '../../src/components/games/QuiGame';
 import { KnowGame } from '../../src/components/games/KnowGame';
 import { Q36Game } from '../../src/components/games/Q36Game';
+import { PrefereGame } from '../../src/components/games/PrefereGame';
+import { TruthLieGame } from '../../src/components/games/TruthLieGame';
+import { DrawGuessGame } from '../../src/components/games/DrawGuessGame';
 
-type GameId = 'qui' | 'know' | 'q36';
+type GameId = 'draw' | 'prefere' | 'truthlie' | 'qui' | 'know' | 'q36';
 
 const GAMES: { id: GameId; emoji: string; title: string; subtitle: string; color: string }[] = [
-  { id: 'qui', emoji: '🤔', title: 'Qui de nous deux ?', subtitle: 'Votez, découvrez si vous êtes d’accord', color: colors.ambre },
+  { id: 'draw', emoji: '🎨', title: 'Dessine & devine', subtitle: 'L’un dessine, l’autre devine en direct', color: colors.ambre },
+  { id: 'prefere', emoji: '🤔', title: 'Tu préfères ?', subtitle: 'Des dilemmes, on compare vos choix', color: colors.corail },
+  { id: 'truthlie', emoji: '🎭', title: '2 vérités, 1 mensonge', subtitle: 'Devine l’intrus de l’autre', color: colors.sauge },
+  { id: 'qui', emoji: '🙋', title: 'Qui de nous deux ?', subtitle: 'Votez, découvrez si vous êtes d’accord', color: colors.ambre },
   { id: 'know', emoji: '🧠', title: 'Me connais-tu ?', subtitle: 'Devine les réponses de l’autre', color: colors.corail },
   { id: 'q36', emoji: '💞', title: '36 questions', subtitle: 'Les questions pour se rapprocher', color: colors.sauge },
 ];
@@ -57,14 +63,23 @@ export default function Games() {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={20}
           >
-            <ScrollView
-              contentContainerStyle={{ flexGrow: 1, padding: spacing.lg }}
-              keyboardShouldPersistTaps="handled"
-            >
-              {active === 'qui' && <QuiGame />}
-              {active === 'know' && <KnowGame />}
-              {active === 'q36' && <Q36Game />}
-            </ScrollView>
+            {active === 'draw' ? (
+              // Le jeu de dessin gère sa propre toile plein écran (pas de scroll).
+              <View style={{ flex: 1, padding: spacing.lg }}>
+                <DrawGuessGame />
+              </View>
+            ) : (
+              <ScrollView
+                contentContainerStyle={{ flexGrow: 1, padding: spacing.lg }}
+                keyboardShouldPersistTaps="handled"
+              >
+                {active === 'prefere' && <PrefereGame />}
+                {active === 'truthlie' && <TruthLieGame />}
+                {active === 'qui' && <QuiGame />}
+                {active === 'know' && <KnowGame />}
+                {active === 'q36' && <Q36Game />}
+              </ScrollView>
+            )}
           </KeyboardAvoidingView>
         </Screen>
       </Modal>

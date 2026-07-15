@@ -1,5 +1,45 @@
 // Données des jeux à deux.
 
+/** Mots à faire deviner en dessinant. */
+export const PICTIONARY_WORDS: string[] = [
+  'chat', 'maison', 'soleil', 'voiture', 'arbre', 'fleur', 'cœur', 'avion',
+  'pizza', 'lune', 'poisson', 'téléphone', 'montagne', 'parapluie', 'guitare',
+  'robot', 'fusée', 'glace', 'ballon', 'clé', 'lunettes', 'vélo', 'papillon',
+  'cadeau', 'fantôme', 'ananas', 'chapeau', 'échelle', 'tortue', 'nuage',
+  'gâteau', 'étoile', 'chien', 'oiseau', 'bateau', 'château', 'serpent',
+  'champignon', 'bougie', 'escargot', 'pomme', 'banane', 'sapin', 'ours',
+  'lit', 'chaise', 'horloge', 'crayon', 'ampoule', 'valise',
+];
+
+/** « Tu préfères ? » : deux options, chacun vote, on compare. */
+export const TU_PREFERES: { a: string; b: string }[] = [
+  { a: 'Un week-end à la montagne', b: 'Un week-end à la plage' },
+  { a: 'Pouvoir voler', b: 'Être invisible' },
+  { a: 'Un dîner aux chandelles à la maison', b: 'Un resto chic en ville' },
+  { a: 'Voyager dans le passé', b: 'Voyager dans le futur' },
+  { a: 'Un chat', b: 'Un chien' },
+  { a: 'Se lever tôt', b: 'Se coucher tard' },
+  { a: 'Un film d’horreur', b: 'Une comédie romantique' },
+  { a: 'La montagne en hiver', b: 'La mer en été' },
+  { a: 'Cuisiner ensemble', b: 'Se faire livrer et se poser' },
+  { a: 'Un road-trip en voiture', b: 'Un voyage en avion' },
+  { a: 'Toujours avoir chaud', b: 'Toujours avoir froid' },
+  { a: 'Ne plus jamais manger de dessert', b: 'Ne plus jamais manger de fromage' },
+  { a: 'Une soirée jeux de société', b: 'Une soirée cinéma canapé' },
+  { a: 'Vivre à la campagne', b: 'Vivre en ville' },
+  { a: 'Parler toutes les langues', b: 'Parler aux animaux' },
+  { a: 'Un petit-déj au lit', b: 'Un brunch dehors' },
+  { a: 'Danser toute la nuit', b: 'Regarder les étoiles en silence' },
+  { a: 'Être riche', b: 'Être célèbre' },
+  { a: 'Thé', b: 'Café' },
+  { a: 'Un tatouage à deux', b: 'Un voyage surprise à deux' },
+  { a: 'La plage au lever du soleil', b: 'La ville la nuit' },
+  { a: 'Relire ton livre préféré', b: 'Revoir ton film préféré' },
+  { a: 'Un pouvoir de téléportation', b: 'Arrêter le temps' },
+  { a: 'Chanter juste', b: 'Danser comme un·e pro' },
+  { a: 'Une maison au bord de l’eau', b: 'Un chalet dans les bois' },
+];
+
 export const QUI_PROMPTS: string[] = [
   'Qui est le plus jaloux·se ?',
   'Qui dit le plus souvent « je t’aime » ?',

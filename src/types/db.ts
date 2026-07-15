@@ -93,7 +93,16 @@ export type DrawingStroke = {
   color: string;
   width: number;
   points: number[][]; // [[x,y],...] normalisés 0..1
+  board: string; // 'free' | 'game'
   created_at: string;
+};
+
+export type Pictionary = {
+  couple_id: string;
+  drawer_id: string | null;
+  word: string | null;
+  solved: boolean;
+  updated_at: string;
 };
 
 export type FarmAnimal = {
@@ -179,6 +188,7 @@ export type Database = {
       pets: TableDef<Pet>;
       farm_animals: TableDef<FarmAnimal>;
       drawing_strokes: TableDef<DrawingStroke>;
+      pictionary: TableDef<Pictionary>;
       photos: TableDef<Photo>;
       playlist_tracks: TableDef<Track>;
       nudges: TableDef<Nudge>;
