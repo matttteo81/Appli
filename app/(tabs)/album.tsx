@@ -27,7 +27,7 @@ import { useCoupleTable } from '../../src/hooks/useCoupleTable';
 import { useAuth } from '../../src/store/auth';
 import { supabase } from '../../src/lib/supabase';
 import type { Photo } from '../../src/types/db';
-import { challengeForToday } from '../../src/lib/challenges';
+import { DAY_SLOTS, slotTag, todayKey } from '../../src/lib/dayphotos';
 import { fonts } from '../../src/theme/typography';
 
 const GAP = 4;
@@ -49,12 +49,20 @@ export default function Album() {
   const [viewer, setViewer] = useState<Photo | null>(null);
   const [pendingChallenge, setPendingChallenge] = useState<string | null>(null);
 
-  const today = challengeForToday();
-  const todaysPhotos = rows.filter((r) => r.challenge === today.dateKey);
-  const myChallengePhoto = todaysPhotos.find((p) => p.author_id === profile?.id);
-  const theirChallengePhoto = todaysPhotos.find(
-    (p) => p.author_id === partner?.id,
-  );
+  const dayKey = todayKey();
+  // Photos de la journée, rangées par créneau : { slotKey: { mine, theirs } }
+  const dayPhotos = React.useMemo(() => {
+    const map: Record<string, { mine?: Photo; theirs?: Photo }> = {};
+    for (const slot of DAY_SLOTS) map[slot.key] = {};
+    for (const p of rows) {
+      if (!p.challenge || !p.challenge.startsWith(`${dayKey}#`)) continue;
+      const slotKey = p.challenge.split('#')[1];
+      if (!map[slotKey]) continue;
+      if (p.author_id === profile?.id) map[slotKey].mine = p;
+      else if (p.author_id === partner?.id) map[slotKey].theirs = p;
+    }
+    return map;
+  }, [rows, dayKey, profile?.id, partner?.id]);
 
   // On génère des URLs signées pour afficher les photos (bucket privé).
   useEffect(() => {
@@ -76,7 +84,7 @@ export default function Album() {
     })();
   }, [rows, urls]);
 
-  const pick = async (forChallenge = false) => {
+  const pick = async (slotKey?: string, slotLabel?: string) => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       Alert.alert(
@@ -94,8 +102,8 @@ export default function Album() {
     const asset = res.assets[0];
     const ext = (asset.uri.split('.').pop() || 'jpg').toLowerCase();
     setPending({ base64: asset.base64!, ext: ext === 'png' ? 'png' : 'jpg' });
-    setPendingChallenge(forChallenge ? today.dateKey : null);
-    setCaption(forChallenge ? today.text : '');
+    setPendingChallenge(slotKey ? slotTag(slotKey) : null);
+    setCaption(slotLabel ?? '');
   };
 
   const upload = async () => {
@@ -137,29 +145,41 @@ export default function Album() {
         columnWrapperStyle={{ gap: GAP }}
         contentContainerStyle={{ gap: GAP, padding: spacing.md, paddingBottom: 160 }}
         ListHeaderComponent={
-          <View style={styles.challengeCard}>
-            <Text style={styles.challengeTag}>📸 DÉFI PHOTO DU JOUR</Text>
-            <ThemedText variant="title" color={colors.creme} style={{ marginTop: 4 }}>
-              {today.text}
+          <View style={styles.routineCard}>
+            <Text style={styles.challengeTag}>📸 VOTRE JOURNÉE À DEUX</Text>
+            <ThemedText variant="body" color={colors.cremeDoux} style={{ marginTop: 2, marginBottom: spacing.sm }}>
+              Immortalisez chaque moment, chacun de votre côté 💛
             </ThemedText>
-            <View style={styles.challengeSlots}>
-              <ChallengeSlot
-                label="Toi"
-                photo={myChallengePhoto}
-                url={myChallengePhoto ? urls[myChallengePhoto.storage_path] : undefined}
-                onAdd={() => pick(true)}
-                onView={() => myChallengePhoto && setViewer(myChallengePhoto)}
-                isMine
-              />
-              <ChallengeSlot
-                label={partner?.display_name ?? 'Ta moitié'}
-                photo={theirChallengePhoto}
-                url={
-                  theirChallengePhoto ? urls[theirChallengePhoto.storage_path] : undefined
-                }
-                onView={() => theirChallengePhoto && setViewer(theirChallengePhoto)}
-              />
-            </View>
+            {DAY_SLOTS.map((slot) => {
+              const mine = dayPhotos[slot.key]?.mine;
+              const theirs = dayPhotos[slot.key]?.theirs;
+              return (
+                <View key={slot.key} style={styles.slotRow}>
+                  <View style={styles.slotHeader}>
+                    <Text style={{ fontSize: 18 }}>{slot.emoji}</Text>
+                    <Text style={styles.slotRowLabel} numberOfLines={1}>
+                      {slot.label}
+                    </Text>
+                  </View>
+                  <View style={styles.slotThumbs}>
+                    <ChallengeSlot
+                      label="Toi"
+                      photo={mine}
+                      url={mine ? urls[mine.storage_path] : undefined}
+                      onAdd={() => pick(slot.key, slot.label)}
+                      onView={() => mine && setViewer(mine)}
+                      isMine
+                    />
+                    <ChallengeSlot
+                      label={partner?.display_name ?? 'Ta moitié'}
+                      photo={theirs}
+                      url={theirs ? urls[theirs.storage_path] : undefined}
+                      onView={() => theirs && setViewer(theirs)}
+                    />
+                  </View>
+                </View>
+              );
+            })}
           </View>
         }
         ListEmptyComponent={
@@ -277,7 +297,7 @@ function ChallengeSlot({
 }
 
 const styles = StyleSheet.create({
-  challengeCard: {
+  routineCard: {
     backgroundColor: colors.prune,
     borderRadius: radius.lg,
     padding: spacing.lg,
@@ -289,15 +309,19 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     color: colors.ambre,
   },
-  challengeSlots: {
-    flexDirection: 'row',
-    gap: spacing.md,
+  slotRow: {
     marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.bordureClaire,
   },
+  slotHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  slotRowLabel: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.creme, flex: 1 },
+  slotThumbs: { flexDirection: 'row', gap: spacing.md },
   slot: { flex: 1, alignItems: 'center', gap: 6 },
   slotImg: {
     width: '100%',
-    height: 120,
+    height: 90,
     borderRadius: radius.md,
     backgroundColor: colors.encreDoux,
   },

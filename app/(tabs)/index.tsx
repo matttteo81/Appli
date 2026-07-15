@@ -47,6 +47,8 @@ export default function Home() {
   const [moodOpen, setMoodOpen] = useState(false);
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [uploadingBg, setUploadingBg] = useState(false);
+  const [togetherUrl, setTogetherUrl] = useState<string | null>(null);
+  const [uploadingTogether, setUploadingTogether] = useState(false);
   const [myWeather, setMyWeather] = useState<Weather | null>(null);
   const [partnerWeather, setPartnerWeather] = useState<Weather | null>(null);
 
@@ -88,6 +90,24 @@ export default function Home() {
       active = false;
     };
   }, [couple?.home_photo_path]);
+
+  // URL signée de la photo « Ensemble depuis ».
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!couple?.together_photo_path) {
+        setTogetherUrl(null);
+        return;
+      }
+      const { data } = await supabase.storage
+        .from('photos')
+        .createSignedUrl(couple.together_photo_path, 60 * 60);
+      if (active) setTogetherUrl(data?.signedUrl ?? null);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [couple?.together_photo_path]);
 
   const distance = useMemo(() => {
     if (
@@ -132,7 +152,11 @@ export default function Home() {
     });
   };
 
-  const changeBackground = async () => {
+  const pickAndUpload = async (
+    prefix: string,
+    setBusy: (b: boolean) => void,
+    apply: (path: string) => Promise<void>,
+  ) => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
       Alert.alert('Accès aux photos refusé', 'Autorise l’accès dans les réglages.');
@@ -144,23 +168,33 @@ export default function Home() {
       base64: true,
     });
     if (res.canceled || !res.assets[0]?.base64 || !couple) return;
-    setUploadingBg(true);
+    setBusy(true);
     try {
       const ext = (res.assets[0].uri.split('.').pop() || 'jpg').toLowerCase();
-      const path = `${couple.id}/home-${Date.now()}.${ext === 'png' ? 'png' : 'jpg'}`;
+      const path = `${couple.id}/${prefix}-${Date.now()}.${ext === 'png' ? 'png' : 'jpg'}`;
       const { error } = await supabase.storage
         .from('photos')
         .upload(path, decode(res.assets[0].base64!), {
           contentType: ext === 'png' ? 'image/png' : 'image/jpeg',
         });
       if (error) throw error;
-      await updateCouple({ home_photo_path: path });
+      await apply(path);
     } catch (e: any) {
       Alert.alert('Oups', e?.message ?? 'Envoi impossible.');
     } finally {
-      setUploadingBg(false);
+      setBusy(false);
     }
   };
+
+  const changeBackground = () =>
+    pickAndUpload('home', setUploadingBg, (path) =>
+      updateCouple({ home_photo_path: path }),
+    );
+
+  const changeTogetherPhoto = () =>
+    pickAndUpload('together', setUploadingTogether, (path) =>
+      updateCouple({ together_photo_path: path }),
+    );
 
   const shareCode = async () => {
     if (!couple) return;
@@ -282,32 +316,51 @@ export default function Home() {
           )}
 
           {/* Ensemble depuis */}
-          <Card>
-            <ThemedText variant="label" color={colors.texteGris}>
-              ENSEMBLE DEPUIS
-            </ThemedText>
-            {couple?.together_since && together ? (
+          <View style={styles.togetherCard}>
+            {togetherUrl ? (
               <>
-                <View style={styles.countRow}>
-                  <CountUnit value={together.years} label="ans" />
-                  <CountUnit value={together.months} label="mois" />
-                  <CountUnit value={together.days} label="jours" />
-                </View>
-                <ThemedText variant="body" color={colors.texteGris} style={{ marginTop: 6 }}>
-                  depuis le {formatDateFr(new Date(couple.together_since))}
-                </ThemedText>
+                <Image source={{ uri: togetherUrl }} style={styles.togetherBg} contentFit="cover" transition={250} />
+                <LinearGradient
+                  colors={['rgba(27,27,58,0.15)', 'rgba(27,27,58,0.75)']}
+                  style={StyleSheet.absoluteFill}
+                />
               </>
-            ) : (
-              <ThemedText variant="body" color={colors.texteGris} style={{ marginTop: 6 }}>
-                Réglez la date de votre mise en couple 💞
+            ) : null}
+            <View style={styles.togetherContent}>
+              <ThemedText variant="label" color={togetherUrl ? colors.cremeDoux : colors.texteGris}>
+                ENSEMBLE DEPUIS
               </ThemedText>
-            )}
-            <Pressable onPress={openTogether} style={{ marginTop: spacing.sm }}>
-              <ThemedText variant="bodyMedium" color={colors.corail}>
-                {couple?.together_since ? 'Modifier la date' : 'Choisir la date'}
-              </ThemedText>
-            </Pressable>
-          </Card>
+              {couple?.together_since && together ? (
+                <>
+                  <View style={styles.countRow}>
+                    <CountUnit value={together.years} label="ans" light={!!togetherUrl} />
+                    <CountUnit value={together.months} label="mois" light={!!togetherUrl} />
+                    <CountUnit value={together.days} label="jours" light={!!togetherUrl} />
+                  </View>
+                  <ThemedText
+                    variant="body"
+                    color={togetherUrl ? colors.cremeDoux : colors.texteGris}
+                    style={{ marginTop: 6 }}
+                  >
+                    depuis le {formatDateFr(new Date(couple.together_since))}
+                  </ThemedText>
+                </>
+              ) : (
+                <ThemedText
+                  variant="body"
+                  color={togetherUrl ? colors.cremeDoux : colors.texteGris}
+                  style={{ marginTop: 6 }}
+                >
+                  Réglez la date de votre mise en couple 💞
+                </ThemedText>
+              )}
+              <Pressable onPress={openTogether} style={{ marginTop: spacing.sm }}>
+                <ThemedText variant="bodyMedium" color={colors.corail}>
+                  {couple?.together_since ? 'Modifier la date' : 'Choisir la date'}
+                </ThemedText>
+              </Pressable>
+            </View>
+          </View>
 
           {/* Distance */}
           <Card>
@@ -334,6 +387,13 @@ export default function Home() {
             variant="secondary"
             onPress={changeBackground}
             loading={uploadingBg}
+          />
+          <Button
+            title={uploadingTogether ? 'Envoi…' : '💞 Photo « Ensemble depuis »'}
+            variant="secondary"
+            onPress={changeTogetherPhoto}
+            loading={uploadingTogether}
+            style={{ marginTop: spacing.sm }}
           />
 
           {/* Réglages */}
@@ -403,11 +463,23 @@ export default function Home() {
   );
 }
 
-function CountUnit({ value, label }: { value: number; label: string }) {
+function CountUnit({
+  value,
+  label,
+  light,
+}: {
+  value: number;
+  label: string;
+  light?: boolean;
+}) {
   return (
     <View style={styles.countUnit}>
-      <Text style={styles.countValue}>{String(value).padStart(2, '0')}</Text>
-      <Text style={styles.countLabel}>{label}</Text>
+      <Text style={[styles.countValue, light && { color: colors.creme }]}>
+        {String(value).padStart(2, '0')}
+      </Text>
+      <Text style={[styles.countLabel, light && { color: colors.cremeDoux }]}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -448,6 +520,14 @@ function formatDateFr(d: Date): string {
 }
 
 const styles = StyleSheet.create({
+  togetherCard: {
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    backgroundColor: colors.creme,
+    minHeight: 120,
+  },
+  togetherBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  togetherContent: { padding: spacing.lg },
   moodRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
   moodChip: {
     flex: 1,

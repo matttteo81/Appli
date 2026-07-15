@@ -9,6 +9,7 @@ export type Couple = {
   reunion_date: string | null;
   together_since: string | null;
   home_photo_path: string | null;
+  together_photo_path: string | null;
   created_at: string;
 };
 

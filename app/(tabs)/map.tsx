@@ -4,11 +4,13 @@ import {
   Dimensions,
   FlatList,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Button, Input, Screen, ThemedText } from '../../src/components/ui';
@@ -23,6 +25,17 @@ import { distanceKm } from '../../src/lib/geo';
 const { width } = Dimensions.get('window');
 const GLOBE_SIZE = Math.min(width - 32, 340);
 
+// La vraie carte (Apple Plans sur iOS — fonctionne aussi en Chine) n'existe
+// que dans un build complet, jamais dans Expo Go.
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+const canUseNativeMap = !isExpoGo && Platform.OS !== 'web';
+const CoupleMap = canUseNativeMap
+  ? (require('../../src/components/CoupleMap').default as React.ComponentType<{
+      profile: any;
+      partner: any;
+    }>)
+  : null;
+
 export default function MapScreen() {
   const profile = useAuth((s) => s.profile);
   const partner = useAuth((s) => s.partner);
@@ -31,6 +44,10 @@ export default function MapScreen() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [locating, setLocating] = useState(false);
+  // Vue par défaut : la vraie carte si dispo, sinon le globe.
+  const [viewMode, setViewMode] = useState<'map' | 'globe'>(
+    CoupleMap ? 'map' : 'globe',
+  );
 
   const useExactLocation = async () => {
     setLocating(true);
@@ -106,11 +123,33 @@ export default function MapScreen() {
       }
     : null;
 
+  const showRealMap = viewMode === 'map' && CoupleMap;
+
   return (
     <Screen edges={['top']} background="transparent">
       <LinearGradient colors={['#0B0B1E', '#1B1B3A', '#2A2A4E']} style={StyleSheet.absoluteFill} />
       <View style={{ flex: 1 }}>
-        {/* Bandeau distance */}
+        {/* La vraie carte (Apple Plans) OU le globe stylisé */}
+        {showRealMap && CoupleMap ? (
+          <CoupleMap profile={profile} partner={partner} />
+        ) : (
+          <View style={styles.globeWrap}>
+            <Globe me={mePlace} partner={partnerPlace} size={GLOBE_SIZE} />
+            {!meHasCity && !partnerHasCity ? (
+              <ThemedText
+                variant="body"
+                color={colors.cremeDoux}
+                center
+                style={{ marginTop: spacing.lg, paddingHorizontal: spacing.xl }}
+              >
+                Choisissez vos villes pour voir le fil qui vous relie sur la
+                planète ✈️
+              </ThemedText>
+            ) : null}
+          </View>
+        )}
+
+        {/* Bandeau distance + bouton bascule vue */}
         <View style={styles.topBanner}>
           <View style={styles.pill}>
             <Text style={styles.pillText}>
@@ -119,21 +158,15 @@ export default function MapScreen() {
                 : 'Choisissez vos villes'}
             </Text>
           </View>
-        </View>
-
-        {/* Le globe */}
-        <View style={styles.globeWrap}>
-          <Globe me={mePlace} partner={partnerPlace} size={GLOBE_SIZE} />
-          {!meHasCity && !partnerHasCity ? (
-            <ThemedText
-              variant="body"
-              color={colors.cremeDoux}
-              center
-              style={{ marginTop: spacing.lg, paddingHorizontal: spacing.xl }}
+          {CoupleMap ? (
+            <Pressable
+              style={styles.toggle}
+              onPress={() => setViewMode((m) => (m === 'map' ? 'globe' : 'map'))}
             >
-              Choisissez vos villes pour voir le fil qui vous relie sur la
-              planète ✈️
-            </ThemedText>
+              <Text style={styles.toggleText}>
+                {viewMode === 'map' ? '🌍 Globe' : '🗺️ Carte'}
+              </Text>
+            </Pressable>
           ) : null}
         </View>
 
@@ -231,9 +264,21 @@ const styles = StyleSheet.create({
     top: spacing.md,
     left: 0,
     right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: spacing.sm,
     zIndex: 2,
   },
+  toggle: {
+    backgroundColor: colors.encreDoux,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.bordureClaire,
+  },
+  toggleText: { color: colors.creme, fontFamily: fonts.bodySemiBold, fontSize: 14 },
   pill: {
     backgroundColor: colors.encreDoux,
     paddingHorizontal: spacing.lg,
