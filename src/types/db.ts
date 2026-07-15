@@ -108,6 +108,26 @@ export type Pictionary = {
   updated_at: string;
 };
 
+export type Farm = {
+  couple_id: string;
+  active_species: string | null;
+  active_name: string | null;
+  active_feeds: number;
+  last_grown_at: string | null;
+  created_at: string;
+};
+
+export type FarmResident = {
+  id: string;
+  couple_id: string;
+  species: string;
+  name: string | null;
+  x: number;
+  y: number;
+  born_at: string;
+  grown_at: string;
+};
+
 export type FarmAnimal = {
   id: string;
   couple_id: string;
@@ -190,6 +210,8 @@ export type Database = {
       rituals: TableDef<Ritual>;
       pets: TableDef<Pet>;
       farm_animals: TableDef<FarmAnimal>;
+      farm: TableDef<Farm>;
+      farm_residents: TableDef<FarmResident>;
       drawing_strokes: TableDef<DrawingStroke>;
       pictionary: TableDef<Pictionary>;
       photos: TableDef<Photo>;
@@ -227,6 +249,10 @@ export type Database = {
         Args: { p_message: string; p_emoji: string };
         Returns: void;
       };
+      pf_ensure: { Args: { p_couple: string }; Returns: Farm };
+      pf_feed: { Args: { p_couple: string }; Returns: Farm };
+      pf_name: { Args: { p_couple: string; p_name: string }; Returns: Farm };
+      pf_new_egg: { Args: { p_couple: string }; Returns: Farm };
       create_couple: {
         Args: Record<string, never>;
         Returns: Couple;
