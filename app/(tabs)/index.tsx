@@ -223,17 +223,17 @@ export default function Home() {
             </View>
           </Card>
 
-          {/* Ensemble (séance synchronisée) */}
+          {/* Ciné à deux (séance synchronisée) */}
           <Pressable onPress={() => router.push('/ensemble')}>
             <Card color={colors.prune}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <Text style={{ fontSize: 34 }}>🎬</Text>
+                <Text style={{ fontSize: 34 }}>🍿</Text>
                 <View style={{ flex: 1 }}>
                   <ThemedText variant="title" color={colors.creme}>
-                    Ensemble
+                    Ciné à deux
                   </ThemedText>
                   <ThemedText variant="body" color={colors.cremeDoux}>
-                    Regarder / écouter en même temps, synchronisés
+                    Regardez un film en même temps, synchronisés à la seconde
                   </ThemedText>
                 </View>
                 <Text style={{ fontSize: 22, color: colors.creme }}>›</Text>
