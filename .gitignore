@@ -31,7 +31,10 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+# on garde .env.example dans le dépôt (c'est un modèle sans secret)
+!.env.example
 
 # typescript
 *.tsbuildinfo

@@ -1,18 +1,26 @@
 {
   "expo": {
-    "name": "Appli-temp",
-    "slug": "Appli-temp",
+    "name": "Fil",
+    "slug": "fil",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "applitemp",
-    "userInterfaceStyle": "automatic",
+    "scheme": "fil",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#FBF6EF",
+    "primaryColor": "#EF8C7C",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fil.app",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Fil a besoin d'accéder à tes photos pour les ajouter à votre album partagé.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.fil.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FBF6EF",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -28,9 +36,22 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#FBF6EF",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Fil a besoin d'accéder à tes photos pour les ajouter à votre album partagé."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#EF8C7C"
         }
       ]
     ],
