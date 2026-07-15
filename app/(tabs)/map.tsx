@@ -1,35 +1,27 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Alert,
+  Dimensions,
   FlatList,
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import Constants from 'expo-constants';
 import * as Location from 'expo-location';
-import { Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Button, Input, Screen, ThemedText } from '../../src/components/ui';
+import { Globe } from '../../src/components/Globe';
 import { fetchWeather } from '../../src/lib/weather';
-import { colors, skyGradients } from '../../src/theme/colors';
+import { colors } from '../../src/theme/colors';
 import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useAuth } from '../../src/store/auth';
 import { City, searchCities } from '../../src/lib/cities';
 import { distanceKm } from '../../src/lib/geo';
 
-// Dans Expo Go, le module natif de la carte n'existe pas : on le charge
-// seulement dans un development build (via require paresseux).
-const isExpoGo = Constants.executionEnvironment === 'storeClient';
-const canUseNativeMap = !isExpoGo && Platform.OS !== 'web';
-const CoupleMap = canUseNativeMap
-  ? (require('../../src/components/CoupleMap').default as React.ComponentType<{
-      profile: any;
-      partner: any;
-    }>)
-  : null;
+const { width } = Dimensions.get('window');
+const GLOBE_SIZE = Math.min(width - 32, 340);
 
 export default function MapScreen() {
   const profile = useAuth((s) => s.profile);
@@ -55,7 +47,6 @@ export default function MapScreen() {
         accuracy: Location.Accuracy.Balanced,
       });
       const { latitude, longitude } = pos.coords;
-      // Nom de la ville (géocodage inverse) + fuseau horaire (via météo).
       let cityName = 'Ma position';
       try {
         const geo = await Location.reverseGeocodeAsync({ latitude, longitude });
@@ -104,56 +95,23 @@ export default function MapScreen() {
     });
   };
 
+  const mePlace = meHasCity
+    ? { lat: profile!.city_lat!, lng: profile!.city_lng!, name: profile?.display_name ?? 'Moi' }
+    : null;
+  const partnerPlace = partnerHasCity
+    ? {
+        lat: partner!.city_lat!,
+        lng: partner!.city_lng!,
+        name: partner?.display_name ?? 'Ma moitié',
+      }
+    : null;
+
   return (
-    <Screen edges={['top']}>
+    <Screen edges={['top']} background="transparent">
+      <LinearGradient colors={['#0B0B1E', '#1B1B3A', '#2A2A4E']} style={StyleSheet.absoluteFill} />
       <View style={{ flex: 1 }}>
-        {/* La vraie carte (dev build) OU un aperçu (Expo Go) */}
-        {CoupleMap ? (
-          <CoupleMap profile={profile} partner={partner} />
-        ) : (
-          <LinearGradient
-            colors={skyGradients.jour}
-            style={StyleSheet.absoluteFill}
-          >
-            <View style={styles.placeholder}>
-              <Text style={{ fontSize: 60 }}>🗺️</Text>
-              <ThemedText
-                variant="title"
-                center
-                color={colors.encre}
-                style={{ marginTop: spacing.md }}
-              >
-                Aperçu de la carte
-              </ThemedText>
-              <ThemedText
-                variant="body"
-                center
-                color={colors.encre}
-                style={{ marginTop: 6, opacity: 0.8, paddingHorizontal: spacing.lg }}
-              >
-                La vraie carte interactive s'affichera dans la version complète
-                de l'appli. Ici, tu peux déjà choisir ta ville et voir la
-                distance.
-              </ThemedText>
-
-              <View style={styles.cityCards}>
-                <CityChip
-                  emoji="🟠"
-                  name={profile?.display_name ?? 'Moi'}
-                  city={profile?.city_name ?? null}
-                />
-                <CityChip
-                  emoji="🔴"
-                  name={partner?.display_name ?? 'Ma moitié'}
-                  city={partner?.city_name ?? null}
-                />
-              </View>
-            </View>
-          </LinearGradient>
-        )}
-
-        {/* Bandeau distance en haut */}
-        <View style={styles.topBanner} pointerEvents="none">
+        {/* Bandeau distance */}
+        <View style={styles.topBanner}>
           <View style={styles.pill}>
             <Text style={styles.pillText}>
               {distance != null
@@ -163,6 +121,22 @@ export default function MapScreen() {
           </View>
         </View>
 
+        {/* Le globe */}
+        <View style={styles.globeWrap}>
+          <Globe me={mePlace} partner={partnerPlace} size={GLOBE_SIZE} />
+          {!meHasCity && !partnerHasCity ? (
+            <ThemedText
+              variant="body"
+              color={colors.cremeDoux}
+              center
+              style={{ marginTop: spacing.lg, paddingHorizontal: spacing.xl }}
+            >
+              Choisissez vos villes pour voir le fil qui vous relie sur la
+              planète ✈️
+            </ThemedText>
+          ) : null}
+        </View>
+
         {/* Boutons localisation */}
         <View style={styles.bottomBar}>
           {meHasCity ? (
@@ -170,7 +144,7 @@ export default function MapScreen() {
               variant="label"
               color={colors.creme}
               center
-              style={{ marginBottom: spacing.sm, textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 4 }}
+              style={{ marginBottom: spacing.sm }}
             >
               📍 {profile?.city_name}
             </ThemedText>
@@ -246,45 +220,11 @@ export default function MapScreen() {
   );
 }
 
-function CityChip({
-  emoji,
-  name,
-  city,
-}: {
-  emoji: string;
-  name: string;
-  city: string | null;
-}) {
-  return (
-    <View style={styles.chip}>
-      <Text style={{ fontSize: 18 }}>{emoji}</Text>
-      <View style={{ flex: 1 }}>
-        <ThemedText variant="bodyMedium" color={colors.encre} numberOfLines={1}>
-          {name}
-        </ThemedText>
-        <ThemedText variant="body" color={colors.encre} numberOfLines={1} style={{ opacity: 0.7 }}>
-          {city ?? 'Ville non choisie'}
-        </ThemedText>
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  placeholder: {
+  globeWrap: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.lg,
-  },
-  cityCards: { marginTop: spacing.xl, width: '100%', gap: spacing.sm },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: 'rgba(255,255,255,0.75)',
-    borderRadius: radius.md,
-    padding: spacing.md,
   },
   topBanner: {
     position: 'absolute',
@@ -292,16 +232,15 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
+    zIndex: 2,
   },
   pill: {
-    backgroundColor: colors.encre,
+    backgroundColor: colors.encreDoux,
     paddingHorizontal: spacing.lg,
     paddingVertical: 10,
     borderRadius: radius.pill,
-    shadowColor: colors.encre,
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    borderWidth: 1,
+    borderColor: colors.bordureClaire,
   },
   pillText: { color: colors.creme, fontFamily: fonts.monoMedium, fontSize: 15 },
   bottomBar: {
