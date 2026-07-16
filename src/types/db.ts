@@ -10,6 +10,19 @@ export type Couple = {
   together_since: string | null;
   home_photo_path: string | null;
   together_photo_path: string | null;
+  streak_count: number;
+  streak_last: string | null;
+  created_at: string;
+};
+
+export type Wish = {
+  id: string;
+  couple_id: string;
+  author_id: string | null;
+  text: string;
+  done: boolean;
+  done_by: string | null;
+  done_at: string | null;
   created_at: string;
 };
 
@@ -236,6 +249,7 @@ export type Database = {
       daily_answers: TableDef<DailyAnswer>;
       messages: TableDef<Message>;
       memories: TableDef<Memory>;
+      wishes: TableDef<Wish>;
       game_responses: TableDef<GameResponse>;
       watch_sessions: TableDef<WatchSession>;
     };
@@ -264,6 +278,10 @@ export type Database = {
       react_to_message: {
         Args: { p_message: string; p_emoji: string };
         Returns: void;
+      };
+      touch_streak: {
+        Args: { p_couple: string };
+        Returns: Couple;
       };
       pf_ensure: { Args: { p_couple: string }; Returns: Farm };
       pf_feed: { Args: { p_couple: string }; Returns: Farm };

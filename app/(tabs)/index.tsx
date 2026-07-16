@@ -51,6 +51,16 @@ export default function Home() {
   const [uploadingTogether, setUploadingTogether] = useState(false);
   const [myWeather, setMyWeather] = useState<Weather | null>(null);
   const [partnerWeather, setPartnerWeather] = useState<Weather | null>(null);
+  const [streak, setStreak] = useState<number | null>(null);
+
+  // Série (streak) : marque l'activité du jour et récupère le compteur.
+  useEffect(() => {
+    if (!couple?.id) return;
+    (async () => {
+      const { data } = await supabase.rpc('touch_streak', { p_couple: couple.id });
+      if (data) setStreak((data as any).streak_count ?? null);
+    })();
+  }, [couple?.id]);
 
   // Météo de chacun (rafraîchie au montage et toutes les 15 min).
   useEffect(() => {
@@ -229,6 +239,15 @@ export default function Home() {
           }}
         />
 
+        {streak && streak > 0 ? (
+          <View style={styles.streak}>
+            <Text style={{ fontSize: 18 }}>🔥</Text>
+            <Text style={styles.streakText}>
+              {streak} jour{streak > 1 ? 's' : ''} d'affilée sur Fil
+            </Text>
+          </View>
+        ) : null}
+
         <View style={{ padding: spacing.lg, gap: spacing.md }}>
           {/* Humeurs */}
           <Card>
@@ -271,6 +290,24 @@ export default function Home() {
                   </ThemedText>
                 </View>
                 <Text style={{ fontSize: 22, color: colors.creme }}>›</Text>
+              </View>
+            </Card>
+          </Pressable>
+
+          {/* À faire ensemble (bucket-list) */}
+          <Pressable onPress={() => router.push('/wishlist')}>
+            <Card color={colors.sauge}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                <Text style={{ fontSize: 34 }}>✨</Text>
+                <View style={{ flex: 1 }}>
+                  <ThemedText variant="title" color={colors.encre}>
+                    À faire ensemble
+                  </ThemedText>
+                  <ThemedText variant="body" color={colors.encre} style={{ opacity: 0.8 }}>
+                    Votre liste de rêves à cocher
+                  </ThemedText>
+                </View>
+                <Text style={{ fontSize: 22, color: colors.encre }}>›</Text>
               </View>
             </Card>
           </Pressable>
@@ -538,6 +575,20 @@ function formatDateFr(d: Date): string {
 }
 
 const styles = StyleSheet.create({
+  streak: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: spacing.md,
+    marginHorizontal: spacing.lg,
+    backgroundColor: colors.cremeDoux,
+    borderRadius: radius.pill,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: colors.ambre,
+  },
+  streakText: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.encre },
   togetherCard: {
     borderRadius: radius.lg,
     overflow: 'hidden',

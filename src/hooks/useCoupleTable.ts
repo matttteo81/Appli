@@ -12,7 +12,8 @@ type TableName =
   | 'daily_answers'
   | 'messages'
   | 'game_responses'
-  | 'memories';
+  | 'memories'
+  | 'wishes';
 
 /**
  * Charge les lignes d'une table pour le couple courant et se met à jour
