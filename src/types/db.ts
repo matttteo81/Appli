@@ -26,6 +26,18 @@ export type Wish = {
   created_at: string;
 };
 
+export type LoveNote = {
+  id: string;
+  couple_id: string;
+  author_id: string | null;
+  to_id: string | null;
+  body: string;
+  reveal_at: string | null;
+  opened: boolean;
+  opened_at: string | null;
+  created_at: string;
+};
+
 export type Profile = {
   id: string;
   display_name: string;
@@ -250,6 +262,7 @@ export type Database = {
       messages: TableDef<Message>;
       memories: TableDef<Memory>;
       wishes: TableDef<Wish>;
+      love_notes: TableDef<LoveNote>;
       game_responses: TableDef<GameResponse>;
       watch_sessions: TableDef<WatchSession>;
     };

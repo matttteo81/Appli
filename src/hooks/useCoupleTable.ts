@@ -13,7 +13,8 @@ type TableName =
   | 'messages'
   | 'game_responses'
   | 'memories'
-  | 'wishes';
+  | 'wishes'
+  | 'love_notes';
 
 /**
  * Charge les lignes d'une table pour le couple courant et se met à jour

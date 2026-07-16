@@ -312,6 +312,24 @@ export default function Home() {
             </Card>
           </Pressable>
 
+          {/* Petits mots surprises */}
+          <Pressable onPress={() => router.push('/notes')}>
+            <Card color={colors.prune}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                <Text style={{ fontSize: 34 }}>💌</Text>
+                <View style={{ flex: 1 }}>
+                  <ThemedText variant="title" color={colors.creme}>
+                    Petits mots
+                  </ThemedText>
+                  <ThemedText variant="body" color={colors.creme} style={{ opacity: 0.85 }}>
+                    Des surprises scellées, à ouvrir plus tard
+                  </ThemedText>
+                </View>
+                <Text style={{ fontSize: 22, color: colors.creme }}>›</Text>
+              </View>
+            </Card>
+          </Pressable>
+
           {/* Journal des souvenirs */}
           <Pressable onPress={() => router.push('/journal')}>
             <Card color={colors.corail}>
