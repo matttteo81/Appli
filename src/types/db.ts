@@ -38,6 +38,18 @@ export type LoveNote = {
   created_at: string;
 };
 
+export type CoupleEvent = {
+  id: string;
+  couple_id: string;
+  author_id: string | null;
+  title: string;
+  emoji: string;
+  event_date: string; // YYYY-MM-DD
+  event_time: string | null; // 'HH:MM' ou null
+  note: string | null;
+  created_at: string;
+};
+
 export type Profile = {
   id: string;
   display_name: string;
@@ -263,6 +275,7 @@ export type Database = {
       memories: TableDef<Memory>;
       wishes: TableDef<Wish>;
       love_notes: TableDef<LoveNote>;
+      events: TableDef<CoupleEvent>;
       game_responses: TableDef<GameResponse>;
       watch_sessions: TableDef<WatchSession>;
     };

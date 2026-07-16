@@ -312,6 +312,24 @@ export default function Home() {
             </Card>
           </Pressable>
 
+          {/* Agenda partagé */}
+          <Pressable onPress={() => router.push('/agenda')}>
+            <Card color={colors.ambre}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                <Text style={{ fontSize: 34 }}>📅</Text>
+                <View style={{ flex: 1 }}>
+                  <ThemedText variant="title" color={colors.encre}>
+                    Notre agenda
+                  </ThemedText>
+                  <ThemedText variant="body" color={colors.encre} style={{ opacity: 0.8 }}>
+                    Vos rendez-vous et dates, avec rappels
+                  </ThemedText>
+                </View>
+                <Text style={{ fontSize: 22, color: colors.encre }}>›</Text>
+              </View>
+            </Card>
+          </Pressable>
+
           {/* Petits mots surprises */}
           <Pressable onPress={() => router.push('/notes')}>
             <Card color={colors.prune}>

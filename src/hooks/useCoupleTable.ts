@@ -14,7 +14,8 @@ type TableName =
   | 'game_responses'
   | 'memories'
   | 'wishes'
-  | 'love_notes';
+  | 'love_notes'
+  | 'events';
 
 /**
  * Charge les lignes d'une table pour le couple courant et se met à jour
