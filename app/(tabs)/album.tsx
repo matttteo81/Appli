@@ -11,8 +11,10 @@ import {
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { Image } from 'expo-image';
 import { decode } from 'base64-arraybuffer';
+import { gpsFromExif } from '../../src/lib/exifgps';
 import {
   Button,
   EmptyState,
@@ -42,9 +44,12 @@ export default function Album() {
 
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
-  const [pending, setPending] = useState<{ base64: string; ext: string } | null>(
-    null,
-  );
+  const [pending, setPending] = useState<{
+    base64: string;
+    ext: string;
+    lat: number | null;
+    lng: number | null;
+  } | null>(null);
   const [caption, setCaption] = useState('');
   const [viewer, setViewer] = useState<Photo | null>(null);
   const [pendingChallenge, setPendingChallenge] = useState<string | null>(null);
@@ -97,11 +102,30 @@ export default function Album() {
       mediaTypes: ['images'],
       quality: 0.6,
       base64: true,
+      exif: true,
     });
     if (res.canceled || !res.assets[0]?.base64) return;
     const asset = res.assets[0];
     const ext = (asset.uri.split('.').pop() || 'jpg').toLowerCase();
-    setPending({ base64: asset.base64!, ext: ext === 'png' ? 'png' : 'jpg' });
+
+    // Où la photo a-t-elle été prise ? EXIF d'abord, sinon la position actuelle.
+    let loc = gpsFromExif(asset.exif);
+    if (!loc) {
+      try {
+        const perm = await Location.getForegroundPermissionsAsync();
+        if (perm.granted) {
+          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        }
+      } catch {}
+    }
+
+    setPending({
+      base64: asset.base64!,
+      ext: ext === 'png' ? 'png' : 'jpg',
+      lat: loc?.lat ?? null,
+      lng: loc?.lng ?? null,
+    });
     setPendingChallenge(slotKey ? slotTag(slotKey) : null);
     setCaption(slotLabel ?? '');
   };
@@ -124,6 +148,8 @@ export default function Album() {
         storage_path: path,
         caption: caption.trim() || null,
         challenge: pendingChallenge,
+        lat: pending.lat,
+        lng: pending.lng,
       });
       setPending(null);
       setCaption('');

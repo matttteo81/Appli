@@ -150,6 +150,8 @@ export type Photo = {
   storage_path: string;
   caption: string | null;
   challenge: string | null;
+  lat: number | null;
+  lng: number | null;
   created_at: string;
 };
 
