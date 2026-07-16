@@ -30,6 +30,7 @@ import { distanceKm } from '../../src/lib/geo';
 import { MOODS } from '../../src/lib/moods';
 import { fetchWeather, Weather } from '../../src/lib/weather';
 import { supabase } from '../../src/lib/supabase';
+import { syncWidgets } from '../../src/lib/widgets';
 
 /** Les espaces « à deux » présentés en grille compacte sur l'accueil. */
 const NAV_TILES: {
@@ -79,6 +80,17 @@ export default function Home() {
       if (data) setStreak((data as any).streak_count ?? null);
     })();
   }, [couple?.id]);
+
+  // Alimente les widgets iOS (compte à rebours + jours ensemble + série).
+  useEffect(() => {
+    if (!couple) return;
+    syncWidgets({
+      reunionDate: couple.reunion_date,
+      reunionLabel: 'Retrouvailles',
+      togetherSince: couple.together_since,
+      streak,
+    });
+  }, [couple?.reunion_date, couple?.together_since, streak]);
 
   // Météo de chacun (rafraîchie au montage et toutes les 15 min).
   useEffect(() => {

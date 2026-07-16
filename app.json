@@ -11,6 +11,9 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.fil.couple",
+      "entitlements": {
+        "com.apple.security.application-groups": ["group.com.fil.couple.widgets"]
+      },
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Fil a besoin d'accéder à tes photos pour les ajouter à votre album partagé.",
         "NSCameraUsageDescription": "Fil peut utiliser l'appareil photo pour ajouter des photos à votre album partagé.",
@@ -27,7 +30,14 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ]
     },
     "web": {
@@ -91,7 +101,8 @@
             "deploymentTarget": "17.0"
           }
         }
-      ]
+      ],
+      "@bacons/apple-targets"
     ],
     "extra": {
       "eas": {

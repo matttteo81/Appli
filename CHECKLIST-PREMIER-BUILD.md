@@ -171,13 +171,35 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
       barrière anti-plantage
 - [x] **iOS 17.0** comme cible minimale (`expo-build-properties`) — requis par
       Apple Maps. ⚠️ l'app ne s'installera plus sur iOS 15/16.
-- [ ] Widgets — *en cours de préparation* (voir ci-dessous)
+- [x] **Widgets iOS** (`@bacons/apple-targets`) — 2 widgets texte préparés
+      (voir section 12).
+
+## 12. 📱 Widgets iOS (NOUVEAU — natif)
+
+### ⚠️ Prérequis AVANT de lancer le build (sinon le build peut échouer)
+- [ ] **Team ID Apple** : ajouter `ios.appleTeamId` dans `app.json` (10 caractères,
+      visible sur la page « Membership » du compte développeur de ton ami). Sans lui,
+      la signature du widget peut faire échouer le build.
+- [ ] **App Group** : à la 1re compilation, EAS doit enregistrer
+      `group.com.fil.couple.widgets` sur le compte Apple (normalement automatique
+      avec les identifiants gérés par EAS — à surveiller).
+
+### À tester une fois installé
+- [ ] Ajouter un widget depuis l'écran d'accueil iPhone → chercher **« Fil »**
+- [ ] Widget **Compte à rebours** : affiche les jours avant les retrouvailles
+- [ ] Widget **Jours ensemble** : affiche les jours + la série 🔥
+- [ ] Les valeurs se **mettent à jour** après avoir ouvert l'app (réglé une date,
+      ouvert Fil) — pas instantané, c'est normal (budget iOS)
+- [ ] Le compteur **change tout seul** le lendemain (timeline quotidienne)
+- [ ] Tailles petite + moyenne OK
+- [ ] ⚠️ Si un widget reste gris/vide : ce n'est **jamais** un plantage de l'app
+      (widget = processus séparé)
 
 ## 🔜 À faire APRÈS ce build
 
 - [ ] Connecter la **partenaire (Chine)** à TestFlight
+- [ ] **Widget photo** façon Locket (sur la tuyauterie App Group déjà en place)
 - [ ] (Éventuel) épingles photo avec **vraie vignette** au lieu de l'icône 📷
-      (upgrade une fois qu'on peut tester)
 
 ---
 
