@@ -275,6 +275,24 @@ export default function Home() {
             </Card>
           </Pressable>
 
+          {/* Journal des souvenirs */}
+          <Pressable onPress={() => router.push('/journal')}>
+            <Card color={colors.corail}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                <Text style={{ fontSize: 34 }}>📔</Text>
+                <View style={{ flex: 1 }}>
+                  <ThemedText variant="title" color={colors.creme}>
+                    Notre journal
+                  </ThemedText>
+                  <ThemedText variant="body" color={colors.creme} style={{ opacity: 0.85 }}>
+                    Votre frise de souvenirs à deux
+                  </ThemedText>
+                </View>
+                <Text style={{ fontSize: 22, color: colors.creme }}>›</Text>
+              </View>
+            </Card>
+          </Pressable>
+
           {/* Dessin partagé */}
           <Pressable onPress={() => router.push('/dessin')}>
             <Card color={colors.sauge}>

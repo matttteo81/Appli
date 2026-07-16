@@ -84,6 +84,7 @@ export default function RootLayout() {
           <Stack.Screen name="ensemble" />
           <Stack.Screen name="dessin" />
           <Stack.Screen name="souvenirs" />
+          <Stack.Screen name="journal" />
           <Stack.Screen
             name="nudge"
             options={{ presentation: 'transparentModal', animation: 'fade' }}
@@ -131,7 +132,8 @@ function AuthGate() {
       group === 'nudge' ||
       group === 'ensemble' ||
       group === 'dessin' ||
-      group === 'souvenirs';
+      group === 'souvenirs' ||
+      group === 'journal';
     if (!allowed) {
       router.replace('/(tabs)');
     }

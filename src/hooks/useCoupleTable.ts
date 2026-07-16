@@ -11,7 +11,8 @@ type TableName =
   | 'countdowns'
   | 'daily_answers'
   | 'messages'
-  | 'game_responses';
+  | 'game_responses'
+  | 'memories';
 
 /**
  * Charge les lignes d'une table pour le couple courant et se met à jour

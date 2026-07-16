@@ -39,6 +39,17 @@ export type Word = {
   created_at: string;
 };
 
+export type Memory = {
+  id: string;
+  couple_id: string;
+  author_id: string | null;
+  title: string | null;
+  body: string | null;
+  photo_path: string | null;
+  memory_date: string; // YYYY-MM-DD
+  created_at: string;
+};
+
 export type Message = {
   id: string;
   couple_id: string;
@@ -224,6 +235,7 @@ export type Database = {
       countdowns: TableDef<Countdown>;
       daily_answers: TableDef<DailyAnswer>;
       messages: TableDef<Message>;
+      memories: TableDef<Memory>;
       game_responses: TableDef<GameResponse>;
       watch_sessions: TableDef<WatchSession>;
     };
