@@ -92,6 +92,17 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
 - [ ] Ajouter une photo → sa **position** est captée (EXIF ou position actuelle)
 - [ ] Écran « Nos souvenirs par lieu » : photos **regroupées par endroit**
 
+### 🗺️ Vraie carte Apple (NOUVEAU — natif, `expo-maps`)
+- [ ] Onglet Carte → bouton **« 🗺️ La vraie carte de nos souvenirs »**
+- [ ] La carte Apple s'affiche (nécessite **iOS 17+** sur l'iPhone)
+- [ ] Épingle 💛 toi / 💚 ta moitié sur vos villes
+- [ ] Épingles 📷 sur les lieux des photos géolocalisées (regroupées par endroit)
+- [ ] Toucher une épingle photo → ouvre la liste des souvenirs (iOS 18+)
+- [ ] Si la carte ne charge pas : un **repli** propre s'affiche (pas de crash) +
+      bouton vers la liste
+- [ ] ⚠️ Vérifier que l'app **démarre toujours normalement** (la carte est
+      chargée à la demande, isolée derrière une barrière anti-plantage)
+
 ---
 
 ## 8. 🎵 Playlist
@@ -154,11 +165,19 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
 
 ---
 
-## 🔜 À faire APRÈS ce build (natif — prévoir un 2e build dédié)
+## ⚙️ Nouveautés natives incluses dans CE build (à surveiller au build)
 
-- [ ] **Widgets** iOS (photo façon Locket, humeur, compte à rebours, ferme)
-- [ ] **Vraie carte Apple** avec les photos géolocalisées (`expo-maps`)
+- [x] **Vraie carte Apple** (`expo-maps`) — préparée, chargée à la demande +
+      barrière anti-plantage
+- [x] **iOS 17.0** comme cible minimale (`expo-build-properties`) — requis par
+      Apple Maps. ⚠️ l'app ne s'installera plus sur iOS 15/16.
+- [ ] Widgets — *en cours de préparation* (voir ci-dessous)
+
+## 🔜 À faire APRÈS ce build
+
 - [ ] Connecter la **partenaire (Chine)** à TestFlight
+- [ ] (Éventuel) épingles photo avec **vraie vignette** au lieu de l'icône 📷
+      (upgrade une fois qu'on peut tester)
 
 ---
 

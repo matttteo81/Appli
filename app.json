@@ -76,6 +76,21 @@
         {
           "microphonePermission": "Fil utilise le micro pour enregistrer tes messages vocaux « Tu me manques »."
         }
+      ],
+      [
+        "expo-maps",
+        {
+          "requestLocationPermission": true,
+          "locationPermission": "Fil utilise ta position pour te situer sur la carte de vos souvenirs."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "17.0"
+          }
+        }
       ]
     ],
     "extra": {

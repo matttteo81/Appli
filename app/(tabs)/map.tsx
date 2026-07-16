@@ -163,6 +163,12 @@ export default function MapScreen() {
             style={{ marginTop: spacing.sm }}
           />
           <Button
+            title="🗺️ La vraie carte de nos souvenirs"
+            variant="ghost"
+            onPress={() => router.push('/carte-photos')}
+            style={{ marginTop: spacing.sm }}
+          />
+          <Button
             title="📸 Nos souvenirs par lieu"
             variant="ghost"
             onPress={() => router.push('/souvenirs')}
