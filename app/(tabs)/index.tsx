@@ -31,6 +31,24 @@ import { MOODS } from '../../src/lib/moods';
 import { fetchWeather, Weather } from '../../src/lib/weather';
 import { supabase } from '../../src/lib/supabase';
 
+/** Les espaces « à deux » présentés en grille compacte sur l'accueil. */
+const NAV_TILES: {
+  route: string;
+  emoji: string;
+  label: string;
+  sub: string;
+  color: string;
+  dark?: boolean;
+}[] = [
+  { route: '/ensemble', emoji: '🍿', label: 'Ciné à deux', sub: 'Un film synchronisé', color: colors.prune },
+  { route: '/wishlist', emoji: '✨', label: 'À faire ensemble', sub: 'Votre liste de rêves', color: colors.sauge, dark: true },
+  { route: '/agenda', emoji: '📅', label: 'Notre agenda', sub: 'Dates & rappels', color: colors.ambre, dark: true },
+  { route: '/notes', emoji: '💌', label: 'Petits mots', sub: 'Surprises scellées', color: colors.corail },
+  { route: '/amour', emoji: '💞', label: 'Langages de l’amour', sub: 'Le test de couple', color: colors.prune },
+  { route: '/journal', emoji: '📔', label: 'Notre journal', sub: 'Frise de souvenirs', color: colors.corail },
+  { route: '/dessin', emoji: '✏️', label: 'Dessin partagé', sub: 'Toile en temps réel', color: colors.sauge, dark: true },
+];
+
 export default function Home() {
   const profile = useAuth((s) => s.profile);
   const partner = useAuth((s) => s.partner);
@@ -276,131 +294,34 @@ export default function Home() {
             </View>
           </Card>
 
-          {/* Ciné à deux (séance synchronisée) */}
-          <Pressable onPress={() => router.push('/ensemble')}>
-            <Card color={colors.prune}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <Text style={{ fontSize: 34 }}>🍿</Text>
-                <View style={{ flex: 1 }}>
-                  <ThemedText variant="title" color={colors.creme}>
-                    Ciné à deux
+          {/* Nos espaces à deux, en grille compacte */}
+          <ThemedText variant="label" color={colors.texteGris} style={{ marginTop: spacing.xs }}>
+            À DEUX
+          </ThemedText>
+          <View style={styles.tileGrid}>
+            {NAV_TILES.map((t) => (
+              <Pressable
+                key={t.route}
+                onPress={() => router.push(t.route as never)}
+                style={[styles.tile, { backgroundColor: t.color }]}
+              >
+                <Text style={styles.tileEmoji}>{t.emoji}</Text>
+                <View>
+                  <ThemedText variant="bodyMedium" color={t.dark ? colors.encre : colors.creme}>
+                    {t.label}
                   </ThemedText>
-                  <ThemedText variant="body" color={colors.cremeDoux}>
-                    Regardez un film en même temps, synchronisés à la seconde
-                  </ThemedText>
-                </View>
-                <Text style={{ fontSize: 22, color: colors.creme }}>›</Text>
-              </View>
-            </Card>
-          </Pressable>
-
-          {/* À faire ensemble (bucket-list) */}
-          <Pressable onPress={() => router.push('/wishlist')}>
-            <Card color={colors.sauge}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <Text style={{ fontSize: 34 }}>✨</Text>
-                <View style={{ flex: 1 }}>
-                  <ThemedText variant="title" color={colors.encre}>
-                    À faire ensemble
-                  </ThemedText>
-                  <ThemedText variant="body" color={colors.encre} style={{ opacity: 0.8 }}>
-                    Votre liste de rêves à cocher
+                  <ThemedText
+                    variant="body"
+                    color={t.dark ? colors.encre : colors.creme}
+                    style={{ opacity: 0.8, fontSize: 13, lineHeight: 17, marginTop: 1 }}
+                    numberOfLines={2}
+                  >
+                    {t.sub}
                   </ThemedText>
                 </View>
-                <Text style={{ fontSize: 22, color: colors.encre }}>›</Text>
-              </View>
-            </Card>
-          </Pressable>
-
-          {/* Agenda partagé */}
-          <Pressable onPress={() => router.push('/agenda')}>
-            <Card color={colors.ambre}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <Text style={{ fontSize: 34 }}>📅</Text>
-                <View style={{ flex: 1 }}>
-                  <ThemedText variant="title" color={colors.encre}>
-                    Notre agenda
-                  </ThemedText>
-                  <ThemedText variant="body" color={colors.encre} style={{ opacity: 0.8 }}>
-                    Vos rendez-vous et dates, avec rappels
-                  </ThemedText>
-                </View>
-                <Text style={{ fontSize: 22, color: colors.encre }}>›</Text>
-              </View>
-            </Card>
-          </Pressable>
-
-          {/* Petits mots surprises */}
-          <Pressable onPress={() => router.push('/notes')}>
-            <Card color={colors.prune}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <Text style={{ fontSize: 34 }}>💌</Text>
-                <View style={{ flex: 1 }}>
-                  <ThemedText variant="title" color={colors.creme}>
-                    Petits mots
-                  </ThemedText>
-                  <ThemedText variant="body" color={colors.creme} style={{ opacity: 0.85 }}>
-                    Des surprises scellées, à ouvrir plus tard
-                  </ThemedText>
-                </View>
-                <Text style={{ fontSize: 22, color: colors.creme }}>›</Text>
-              </View>
-            </Card>
-          </Pressable>
-
-          {/* Langages de l'amour */}
-          <Pressable onPress={() => router.push('/amour')}>
-            <Card color={colors.corail}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <Text style={{ fontSize: 34 }}>💞</Text>
-                <View style={{ flex: 1 }}>
-                  <ThemedText variant="title" color={colors.creme}>
-                    Langages de l’amour
-                  </ThemedText>
-                  <ThemedText variant="body" color={colors.creme} style={{ opacity: 0.85 }}>
-                    Un test pour mieux vous comprendre
-                  </ThemedText>
-                </View>
-                <Text style={{ fontSize: 22, color: colors.creme }}>›</Text>
-              </View>
-            </Card>
-          </Pressable>
-
-          {/* Journal des souvenirs */}
-          <Pressable onPress={() => router.push('/journal')}>
-            <Card color={colors.corail}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <Text style={{ fontSize: 34 }}>📔</Text>
-                <View style={{ flex: 1 }}>
-                  <ThemedText variant="title" color={colors.creme}>
-                    Notre journal
-                  </ThemedText>
-                  <ThemedText variant="body" color={colors.creme} style={{ opacity: 0.85 }}>
-                    Votre frise de souvenirs à deux
-                  </ThemedText>
-                </View>
-                <Text style={{ fontSize: 22, color: colors.creme }}>›</Text>
-              </View>
-            </Card>
-          </Pressable>
-
-          {/* Dessin partagé */}
-          <Pressable onPress={() => router.push('/dessin')}>
-            <Card color={colors.sauge}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <Text style={{ fontSize: 34 }}>✏️</Text>
-                <View style={{ flex: 1 }}>
-                  <ThemedText variant="title" color={colors.encre}>
-                    Dessin partagé
-                  </ThemedText>
-                  <ThemedText variant="body" color={colors.encre} style={{ opacity: 0.8 }}>
-                    Une toile commune, en temps réel
-                  </ThemedText>
-                </View>
-                <Text style={{ fontSize: 22, color: colors.encre }}>›</Text>
-              </View>
-            </Card>
-          </Pressable>
+              </Pressable>
+            ))}
+          </View>
 
           {/* Question du jour */}
           <QuestionCard />
@@ -643,6 +564,20 @@ const styles = StyleSheet.create({
     borderColor: colors.ambre,
   },
   streakText: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.encre },
+  tileGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  tile: {
+    width: '48%',
+    minHeight: 116,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    justifyContent: 'space-between',
+  },
+  tileEmoji: { fontSize: 30 },
   togetherCard: {
     borderRadius: radius.lg,
     overflow: 'hidden',
