@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import * as Location from 'expo-location';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Button, Input, Screen, ThemedText } from '../../src/components/ui';
 import { Globe } from '../../src/components/Globe';
@@ -24,6 +25,7 @@ const { width } = Dimensions.get('window');
 const GLOBE_SIZE = Math.min(width - 32, 340);
 
 export default function MapScreen() {
+  const router = useRouter();
   const profile = useAuth((s) => s.profile);
   const partner = useAuth((s) => s.partner);
   const updateProfile = useAuth((s) => s.updateProfile);
@@ -158,6 +160,12 @@ export default function MapScreen() {
             title="Ou choisir une ville"
             variant="ghost"
             onPress={() => setPickerOpen(true)}
+            style={{ marginTop: spacing.sm }}
+          />
+          <Button
+            title="📸 Nos souvenirs par lieu"
+            variant="ghost"
+            onPress={() => router.push('/souvenirs')}
             style={{ marginTop: spacing.sm }}
           />
         </View>
