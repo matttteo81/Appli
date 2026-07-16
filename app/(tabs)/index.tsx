@@ -348,6 +348,24 @@ export default function Home() {
             </Card>
           </Pressable>
 
+          {/* Langages de l'amour */}
+          <Pressable onPress={() => router.push('/amour')}>
+            <Card color={colors.corail}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                <Text style={{ fontSize: 34 }}>💞</Text>
+                <View style={{ flex: 1 }}>
+                  <ThemedText variant="title" color={colors.creme}>
+                    Langages de l’amour
+                  </ThemedText>
+                  <ThemedText variant="body" color={colors.creme} style={{ opacity: 0.85 }}>
+                    Un test pour mieux vous comprendre
+                  </ThemedText>
+                </View>
+                <Text style={{ fontSize: 22, color: colors.creme }}>›</Text>
+              </View>
+            </Card>
+          </Pressable>
+
           {/* Journal des souvenirs */}
           <Pressable onPress={() => router.push('/journal')}>
             <Card color={colors.corail}>
