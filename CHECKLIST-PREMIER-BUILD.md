@@ -1,0 +1,171 @@
+# ✅ Checklist « premier build groupé » — Fil
+
+Tout ce qui s'est accumulé dans le code **depuis le dernier build sur TestFlight**.
+Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au fur et à mesure.
+
+> Rappel : coder une fonctionnalité ne coûte pas de build. Seuls **tester sur
+> le téléphone** puis **corriger un bug** ou **ajouter du natif** en consomment.
+
+---
+
+## 0. Avant de lancer le build (moi, sans dépenser de build)
+
+- [ ] `npx tsc --noEmit` propre
+- [ ] `rm -rf dist && npx expo export --platform ios` propre
+- [ ] Relire `app.json` (plugins natifs : expo-audio, expo-location, notifications)
+- [ ] Confirmer que **react-native-maps est bien absent** (c'est lui qui faisait
+      planter le build #22)
+- [ ] Préparer dans le MÊME build le natif restant (widgets + carte Apple) si on
+      décide de les inclure — voir section 🔜
+
+---
+
+## 1. 🚀 L'app se lance (le plus critique)
+
+- [ ] L'app s'ouvre sans crash au démarrage
+- [ ] On passe l'écran de connexion / appairage
+- [ ] L'accueil s'affiche
+- [ ] On peut naviguer dans **tous** les onglets sans plantage
+- [ ] On ouvre chaque écran de la grille « À deux » sans plantage
+
+---
+
+## 2. 🏠 Accueil (rangé)
+
+- [ ] Ciel jumeau : les 2 fuseaux horaires + météo de chacun
+- [ ] Badge série 🔥 « X jours d'affilée »
+- [ ] Vos humeurs (choisir la sienne, voir celle du partenaire)
+- [ ] Grille « À DEUX » compacte (7 tuiles) bien lisible
+- [ ] « Ensemble depuis » (compteur ans/mois/jours + photo)
+- [ ] Distance entre vous (km)
+- [ ] Comptes à rebours
+- [ ] Changer la photo d'accueil / photo « Ensemble depuis »
+- [ ] Verrou Face ID + déconnexion
+
+---
+
+## 3. 💬 Messagerie
+
+- [ ] Envoyer / recevoir un message en temps réel
+- [ ] GIFs prédéfinis (choisir dans la liste)
+- [ ] GIF créé depuis ses propres photos
+- [ ] Réactions à un message (emoji)
+- [ ] Répondre à un message précis (reply)
+
+---
+
+## 4. 🐣 Ferme pixel (style Terraria)
+
+- [ ] Le jeu prend tout l'écran
+- [ ] Au départ : **1 seul œuf**, terrain vide
+- [ ] Nourrir : **1 fois/jour/personne** (donc 2 max/jour à deux)
+- [ ] L'œuf éclôt après assez de repas → **on nomme l'animal**
+- [ ] Espèce **aléatoire** + **couleur de pelage aléatoire**
+- [ ] ~15 jours pour devenir adulte
+- [ ] Une fois adulte : l'animal s'installe + sa **niche/maison** apparaît
+- [ ] **Nouvel œuf** proposé ~2 jours après
+- [ ] Jour/nuit **automatique** selon l'heure locale
+- [ ] La nuit : les animaux vont dormir dans leur niche avec les **Zzz**
+- [ ] Sprites chat / chien redessinés, nets
+
+---
+
+## 5. 🍿 Ciné à deux
+
+- [ ] La section s'appelle bien « Ciné à deux »
+- [ ] Lancer une séance, se synchroniser à la seconde entre les 2 téléphones
+- [ ] Play / pause partagés
+
+---
+
+## 6. 🎙️ « Tu me manques » (nudge)
+
+- [ ] Envoyer un nudge
+- [ ] Enregistrer et joindre un **message vocal**
+- [ ] Le partenaire reçoit le popup + peut écouter le vocal
+
+---
+
+## 7. 🗺️ Localisation & souvenirs
+
+- [ ] Choisir sa ville (météo + distance se mettent à jour)
+- [ ] Ajouter une photo → sa **position** est captée (EXIF ou position actuelle)
+- [ ] Écran « Nos souvenirs par lieu » : photos **regroupées par endroit**
+
+---
+
+## 8. 🎵 Playlist
+
+- [ ] Ajouter un morceau
+- [ ] Liens **QQ Music** + **NetEase** présents (pour la partenaire en Chine)
+
+---
+
+## 9. 📔 Journal des souvenirs
+
+- [ ] Frise datée (date + titre + texte + photo)
+- [ ] Ajouter un souvenir avec le sélecteur de date
+- [ ] Supprimer un de ses souvenirs (appui long)
+
+---
+
+## 10. ✨ Les 5 nouveautés de la dernière session
+
+### 🔥 Série (streak)
+- [ ] Le compteur augmente à l'ouverture quotidienne
+- [ ] Ne double pas si on ouvre 2 fois le même jour
+
+### ✅ À faire ensemble (bucket-list)
+- [ ] Ajouter un rêve
+- [ ] Cocher / décocher (voir qui a coché)
+- [ ] Supprimer (appui long)
+- [ ] Les « faits » passent en bas
+
+### 💌 Petits mots (notes surprises)
+- [ ] Écrire un mot **ouvrable tout de suite**
+- [ ] Écrire un mot **programmé** pour une date → enveloppe 🔒 verrouillée
+- [ ] Le partenaire ouvre l'enveloppe le jour venu (animation)
+- [ ] Côté expéditeur : statut (pas ouverte / ouverte le…)
+- [ ] La **notification** de rappel arrive (autoriser les notifs)
+
+### 📅 Agenda partagé
+- [ ] Calendrier mensuel, navigation ‹ ›
+- [ ] Pastilles sur les jours qui ont un événement
+- [ ] Ajouter un événement (type, titre, date, heure option., note)
+- [ ] Liste « Prochainement »
+- [ ] **Rappel local** reçu à l'heure de l'événement (autoriser les notifs)
+
+### 💞 Langages de l'amour
+- [ ] Répondre aux 15 questions
+- [ ] Voir son profil (5 barres en %) + langage principal
+- [ ] Quand le partenaire a fini : les 2 profils côte à côte + conseil
+- [ ] « Refaire le test »
+
+---
+
+## 11. ⚠️ Points de vigilance
+
+- [ ] **Autoriser les notifications** au 1er lancement (sinon rappels agenda/notes
+      silencieux)
+- [ ] Vérifier que les **rappels locaux** ne se dupliquent pas (on annule + reprogramme
+      à chaque ouverture de l'agenda)
+- [ ] Fuseaux horaires : Chine (partenaire) vs France — vérifier heures/jour-nuit
+- [ ] Realtime : tester à 2 téléphones que tout se synchronise bien
+
+---
+
+## 🔜 À faire APRÈS ce build (natif — prévoir un 2e build dédié)
+
+- [ ] **Widgets** iOS (photo façon Locket, humeur, compte à rebours, ferme)
+- [ ] **Vraie carte Apple** avec les photos géolocalisées (`expo-maps`)
+- [ ] Connecter la **partenaire (Chine)** à TestFlight
+
+---
+
+## 🧮 Stratégie build (économie de quota)
+
+1. Tout le JS/TS est déjà empilé → **1 build compile tout**.
+2. On garde une **réserve** de builds pour les corrections post-test.
+3. On ne rebuild que pour : un **bug réel** trouvé au test, ou un **ajout natif**.
+4. Idéalement : 1 gros build « fonctionnalités » + 1 build « natif » (widgets/carte)
+   + quelques builds de rattrapage. **Jamais 1 nouveauté = 1 build.**
