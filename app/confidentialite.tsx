@@ -5,7 +5,7 @@ import { Screen, ThemedText } from '../src/components/ui';
 import { colors } from '../src/theme/colors';
 import { spacing } from '../src/theme/typography';
 
-const CONTACT = 'matttteo81@gmail.com';
+const CONTACT = 'support.application1@gmail.com';
 const UPDATED = '17 juillet 2026';
 
 function P({ children }: { children: React.ReactNode }) {

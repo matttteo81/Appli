@@ -167,7 +167,7 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
 - [ ] **Supprimer mon compte** : double confirmation → compte + données effacés →
       retour à l'écran de connexion. ⚠️ (obligatoire App Store)
 - [ ] Après suppression : le **partenaire garde son compte** (vérifier à 2 tel.)
-- [ ] Vérifier `matttteo81@gmail.com` comme contact dans la politique (à changer si besoin)
+- [ ] Contact de la politique : `support.application1@gmail.com` ✅
 
 ## 11. ⚠️ Points de vigilance
 
