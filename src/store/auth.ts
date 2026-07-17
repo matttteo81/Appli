@@ -1,15 +1,13 @@
 import { create } from 'zustand';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import type { Couple, Profile } from '../types/db';
+import type { Profile } from '../types/db';
 
 type AuthState = {
   initialized: boolean;
   loading: boolean;
   session: Session | null;
   profile: Profile | null;
-  couple: Couple | null;
-  partner: Profile | null;
 
   init: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -18,9 +16,7 @@ type AuthState = {
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   updateProfile: (patch: Partial<Profile>) => Promise<void>;
-  updateCouple: (patch: Partial<Couple>) => Promise<void>;
-  createCouple: () => Promise<string>; // renvoie le code d'invitation
-  joinCouple: (code: string) => Promise<void>;
+  touchActive: () => Promise<void>;
 };
 
 export const useAuth = create<AuthState>((set, get) => ({
@@ -28,8 +24,6 @@ export const useAuth = create<AuthState>((set, get) => ({
   loading: false,
   session: null,
   profile: null,
-  couple: null,
-  partner: null,
 
   async init() {
     const { data } = await supabase.auth.getSession();
@@ -37,13 +31,12 @@ export const useAuth = create<AuthState>((set, get) => ({
     if (data.session) {
       await get().refresh();
     }
-    // On écoute les changements de connexion (connexion/déconnexion).
     supabase.auth.onAuthStateChange((_event, session) => {
       set({ session });
       if (session) {
         get().refresh();
       } else {
-        set({ profile: null, couple: null, partner: null });
+        set({ profile: null });
       }
     });
     set({ initialized: true });
@@ -54,7 +47,7 @@ export const useAuth = create<AuthState>((set, get) => ({
     if (!session) return;
     const userId = session.user.id;
 
-    // 1) Profil de l'utilisateur — on le crée s'il n'existe pas encore.
+    // Profil de l'utilisateur — créé automatiquement s'il n'existe pas encore.
     let { data: profile } = await supabase
       .from('profiles')
       .select('*')
@@ -63,19 +56,14 @@ export const useAuth = create<AuthState>((set, get) => ({
 
     if (!profile) {
       const displayName =
-        (session.user.user_metadata?.display_name as string) ?? 'Moi';
-      // upsert (au lieu d'insert) : évite l'erreur de conflit si deux
-      // rafraîchissements tentent de créer le profil en même temps.
+        (session.user.user_metadata?.display_name as string) ?? 'Apprenant·e';
       const { data: created } = await supabase
         .from('profiles')
         .upsert({ id: userId, display_name: displayName }, { onConflict: 'id' })
         .select('*')
         .single();
-      if (created) {
-        profile = created;
-      } else {
-        // Filet de sécurité : un appel concurrent a peut-être créé le profil,
-        // on le relit plutôt que de laisser le profil à null.
+      profile = created ?? null;
+      if (!profile) {
         const { data: refetched } = await supabase
           .from('profiles')
           .select('*')
@@ -84,27 +72,7 @@ export const useAuth = create<AuthState>((set, get) => ({
         profile = refetched ?? null;
       }
     }
-    set({ profile: profile as Profile | null });
-
-    // 2) Couple + partenaire éventuels.
-    if (profile?.couple_id) {
-      const { data: couple } = await supabase
-        .from('couples')
-        .select('*')
-        .eq('id', profile.couple_id)
-        .maybeSingle();
-      set({ couple: (couple as Couple) ?? null });
-
-      const { data: partner } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('couple_id', profile.couple_id)
-        .neq('id', userId)
-        .maybeSingle();
-      set({ partner: (partner as Profile) ?? null });
-    } else {
-      set({ couple: null, partner: null });
-    }
+    set({ profile: (profile as Profile) ?? null });
   },
 
   async signUp(email, password, displayName) {
@@ -116,7 +84,6 @@ export const useAuth = create<AuthState>((set, get) => ({
         options: { data: { display_name: displayName.trim() } },
       });
       if (error) throw error;
-      // Selon la config Supabase, la session peut être immédiate.
       const { data } = await supabase.auth.getSession();
       set({ session: data.session });
       if (data.session) await get().refresh();
@@ -143,15 +110,14 @@ export const useAuth = create<AuthState>((set, get) => ({
 
   async signOut() {
     await supabase.auth.signOut();
-    set({ session: null, profile: null, couple: null, partner: null });
+    set({ session: null, profile: null });
   },
 
   async deleteAccount() {
-    // Supprime le compte côté serveur (cascade), puis nettoie la session.
     const { error } = await supabase.rpc('delete_my_account');
     if (error) throw error;
     await supabase.auth.signOut();
-    set({ session: null, profile: null, couple: null, partner: null });
+    set({ session: null, profile: null });
   },
 
   async updateProfile(patch) {
@@ -167,43 +133,13 @@ export const useAuth = create<AuthState>((set, get) => ({
     set({ profile: data as Profile });
   },
 
-  async updateCouple(patch) {
-    const couple = get().couple;
-    if (!couple) return;
-    const { data, error } = await supabase
-      .from('couples')
-      .update(patch)
-      .eq('id', couple.id)
-      .select('*')
-      .single();
-    if (error) throw error;
-    set({ couple: data as Couple });
-  },
-
-  async createCouple() {
+  /** Marque l'utilisateur comme actif (pour le tri « en ligne récemment »). */
+  async touchActive() {
     const profile = get().profile;
-    if (!profile) throw new Error('Profil introuvable');
-
-    // Création sécurisée côté serveur (génère le code, crée l'animal,
-    // rattache le créateur). Voir la fonction SQL create_couple().
-    const { data, error } = await supabase.rpc('create_couple');
-    if (error) throw error;
-
-    await get().refresh();
-    return (data as Couple).invite_code;
-  },
-
-  async joinCouple(code) {
-    const profile = get().profile;
-    if (!profile) throw new Error('Profil introuvable');
-
-    // Adhésion sécurisée côté serveur (recherche par code sans exposer
-    // la table couples). Voir la fonction SQL join_couple_by_code().
-    const { error } = await supabase.rpc('join_couple_by_code', {
-      p_code: code.trim().toUpperCase(),
-    });
-    if (error) throw error;
-
-    await get().refresh();
+    if (!profile) return;
+    await supabase
+      .from('profiles')
+      .update({ last_active: new Date().toISOString() })
+      .eq('id', profile.id);
   },
 }));
