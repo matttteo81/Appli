@@ -241,12 +241,19 @@ function Bubble({
     message.translation,
   );
   const [translating, setTranslating] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
 
-  const doTranslate = async () => {
-    if (translation || !message.body) return;
+  const onTranslatePress = async () => {
+    if (!message.body) return;
+    // Déjà traduit : on bascule simplement l'affichage (l'original reste visible).
+    if (translation) {
+      setShowTranslation((v) => !v);
+      return;
+    }
     setTranslating(true);
     const out = await translateText(message.body, targetLang);
     setTranslation(out ?? '— traduction indisponible —');
+    setShowTranslation(true);
     setTranslating(false);
   };
 
@@ -288,7 +295,8 @@ function Bubble({
         </ThemedText>
       )}
 
-      {translation ? (
+      {/* La traduction s'affiche SOUS l'original, uniquement à la demande. */}
+      {showTranslation && translation ? (
         <ThemedText
           variant="body"
           color={colors.prune}
@@ -298,10 +306,14 @@ function Bubble({
         </ThemedText>
       ) : null}
 
-      {message.kind === 'text' ? (
-        <Pressable onPress={doTranslate} hitSlop={6} style={styles.translateBtn}>
+      {message.body ? (
+        <Pressable onPress={onTranslatePress} hitSlop={6} style={styles.translateBtn}>
           <ThemedText variant="label" color={mine ? colors.encreDoux : colors.prune}>
-            {translating ? '…' : translation ? '' : '🌐 Traduire'}
+            {translating
+              ? '🌐 …'
+              : showTranslation && translation
+                ? '🌐 Masquer'
+                : '🌐 Traduire'}
           </ThemedText>
         </Pressable>
       ) : null}

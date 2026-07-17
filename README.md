@@ -71,13 +71,19 @@ npm start        # puis « i » (iOS), « a » (Android) ou QR code Expo Go
 
 ## Fonctions optionnelles à brancher
 
-### 🌐 Traduction des messages
-L'app appelle l'Edge Function `translate`. Pour l'activer :
-```bash
-supabase functions deploy translate
-supabase secrets set DEEPL_API_KEY=xxxx   # clé DeepL (offre gratuite dispo)
-```
-Sans elle, le bouton « Traduire » affiche simplement « traduction indisponible ».
+### 🌐 Traduction des messages — ✅ déjà en place
+L'Edge Function `translate` est **déployée et fonctionnelle** sur le projet Supabase.
+Dans le chat, chaque message affiche l'**original** + un bouton **🌐 Traduire** (la
+traduction s'affiche à la demande, sous l'original, pour favoriser l'apprentissage).
+
+Moteur actuel : **gratuit** (aucune clé requise).
+
+> **📌 RAPPEL — passer à DeepL (meilleure qualité) quand la clé sera dispo :**
+> ```bash
+> supabase secrets set DEEPL_API_KEY=xxxx   # clé DeepL (offre gratuite dispo)
+> ```
+> Aucun changement de code : la fonction bascule automatiquement sur DeepL dès que
+> le secret est présent, sinon elle reste sur le moteur gratuit.
 
 ### 🔊 Audio en direct dans les salons
 La **présence** (qui est là, qui parle) est déjà temps réel via Supabase Realtime.
