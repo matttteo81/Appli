@@ -298,16 +298,27 @@ insert into storage.buckets (id, name, public)
   values ('voice-messages', 'voice-messages', true)
   on conflict (id) do nothing;
 
-drop policy if exists avatars_read on storage.objects;
-create policy avatars_read on storage.objects
-  for select using (bucket_id = 'avatars');
+-- Les buckets sont publics : les URL de lecture fonctionnent sans policy SELECT.
+-- On n'ajoute donc PAS de policy de lecture large (elle permettrait de LISTER
+-- tous les fichiers). On limite l'écriture aux utilisateurs connectés.
+drop policy if exists avatars_read on storage.objects;   -- au cas où elle existait
 drop policy if exists avatars_write on storage.objects;
 create policy avatars_write on storage.objects
   for insert to authenticated with check (bucket_id = 'avatars');
 
-drop policy if exists voice_read on storage.objects;
-create policy voice_read on storage.objects
-  for select using (bucket_id = 'voice-messages');
+drop policy if exists voice_read on storage.objects;      -- au cas où elle existait
 drop policy if exists voice_write on storage.objects;
 create policy voice_write on storage.objects
   for insert to authenticated with check (bucket_id = 'voice-messages');
+
+-- =============================================================================
+-- DURCISSEMENT (advisors Supabase)
+-- =============================================================================
+-- Fonction trigger interne : ne pas l'exposer via l'API REST.
+revoke all on function public.touch_conversation() from public, anon, authenticated;
+
+-- RPC réservées aux utilisateurs connectés (retrait du rôle anon).
+revoke execute on function
+  public.discover_partners(double precision, double precision, text, integer) from anon;
+revoke execute on function public.get_or_create_conversation(uuid) from anon;
+revoke execute on function public.delete_my_account() from anon;
