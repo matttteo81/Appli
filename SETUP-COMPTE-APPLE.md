@@ -87,6 +87,11 @@ compte de ton ami :
 
 ---
 
+## 📄 Infos publication déjà prêtes
+- **Politique de confidentialité (URL publique)** :
+  https://classy-lollipop-8f7a84.netlify.app
+- **E-mail de support** : support.application1@gmail.com
+
 ## 🔖 Ce dont j'ai besoin de toi (résumé)
 1. **Team ID** (étape 2)
 2. **Clé API** : fichier `.p8` + **Key ID** + **Issuer ID** (étape 3)

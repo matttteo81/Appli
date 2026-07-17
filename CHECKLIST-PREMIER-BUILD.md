@@ -168,6 +168,8 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
       retour à l'écran de connexion. ⚠️ (obligatoire App Store)
 - [ ] Après suppression : le **partenaire garde son compte** (vérifier à 2 tel.)
 - [ ] Contact de la politique : `support.application1@gmail.com` ✅
+- [x] **URL publique** de la politique (pour les stores) :
+      https://classy-lollipop-8f7a84.netlify.app ✅
 
 ## 11. ⚠️ Points de vigilance
 
