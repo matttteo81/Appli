@@ -39,8 +39,7 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
 - [ ] « Ensemble depuis » (compteur ans/mois/jours + photo)
 - [ ] Distance entre vous (km)
 - [ ] Comptes à rebours
-- [ ] Changer la photo d'accueil / photo « Ensemble depuis »
-- [ ] Verrou Face ID + déconnexion
+- [ ] Ligne **« Paramètres »** en bas → ouvre la page dédiée (voir section 13)
 
 ---
 
@@ -153,6 +152,22 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
 - [ ] « Refaire le test »
 
 ---
+
+## 13. ⚙️ Page Paramètres + préparation publication (NOUVEAU)
+
+> SQL à coller : `supabase/batch17-delete-account.sql`
+
+- [ ] Accueil → **Paramètres** ouvre la nouvelle page
+- [ ] **Photos** : changer la photo d'accueil + la photo « Ensemble depuis »
+      (l'accueil se met bien à jour après)
+- [ ] Ligne « Photo du widget » grisée « Bientôt » (normal)
+- [ ] **Face ID** : le verrou fonctionne toujours (déplacé ici)
+- [ ] **Politique de confidentialité** : la page s'ouvre et se lit
+- [ ] **Se déconnecter** fonctionne
+- [ ] **Supprimer mon compte** : double confirmation → compte + données effacés →
+      retour à l'écran de connexion. ⚠️ (obligatoire App Store)
+- [ ] Après suppression : le **partenaire garde son compte** (vérifier à 2 tel.)
+- [ ] Vérifier `matttteo81@gmail.com` comme contact dans la politique (à changer si besoin)
 
 ## 11. ⚠️ Points de vigilance
 

@@ -16,6 +16,7 @@ type AuthState = {
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   updateProfile: (patch: Partial<Profile>) => Promise<void>;
   updateCouple: (patch: Partial<Couple>) => Promise<void>;
   createCouple: () => Promise<string>; // renvoie le code d'invitation
@@ -141,6 +142,14 @@ export const useAuth = create<AuthState>((set, get) => ({
   },
 
   async signOut() {
+    await supabase.auth.signOut();
+    set({ session: null, profile: null, couple: null, partner: null });
+  },
+
+  async deleteAccount() {
+    // Supprime le compte côté serveur (cascade), puis nettoie la session.
+    const { error } = await supabase.rpc('delete_my_account');
+    if (error) throw error;
     await supabase.auth.signOut();
     set({ session: null, profile: null, couple: null, partner: null });
   },

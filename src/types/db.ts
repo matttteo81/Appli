@@ -309,6 +309,10 @@ export type Database = {
         Args: { p_couple: string };
         Returns: Couple;
       };
+      delete_my_account: {
+        Args: Record<string, never>;
+        Returns: void;
+      };
       pf_ensure: { Args: { p_couple: string }; Returns: Farm };
       pf_feed: { Args: { p_couple: string }; Returns: Farm };
       pf_name: { Args: { p_couple: string; p_name: string }; Returns: Farm };

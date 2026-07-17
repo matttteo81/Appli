@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   Modal,
   Platform,
   Pressable,
@@ -11,13 +10,10 @@ import {
   View,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { decode } from 'base64-arraybuffer';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Switch } from 'react-native';
 import { Button, Card, ThemedText } from '../../src/components/ui';
 import { TwinSky } from '../../src/components/TwinSky';
 import { QuestionCard } from '../../src/components/QuestionCard';
@@ -25,7 +21,6 @@ import { CountdownsCard } from '../../src/components/CountdownsCard';
 import { colors } from '../../src/theme/colors';
 import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useAuth } from '../../src/store/auth';
-import { useLock } from '../../src/store/lock';
 import { distanceKm } from '../../src/lib/geo';
 import { MOODS } from '../../src/lib/moods';
 import { fetchWeather, Weather } from '../../src/lib/weather';
@@ -56,18 +51,13 @@ export default function Home() {
   const couple = useAuth((s) => s.couple);
   const updateCouple = useAuth((s) => s.updateCouple);
   const updateProfile = useAuth((s) => s.updateProfile);
-  const signOut = useAuth((s) => s.signOut);
-  const lockEnabled = useLock((s) => s.enabled);
-  const setLockEnabled = useLock((s) => s.setEnabled);
   const router = useRouter();
 
   const [picker, setPicker] = useState<null | 'together'>(null);
   const [tempDate, setTempDate] = useState<Date>(new Date());
   const [moodOpen, setMoodOpen] = useState(false);
   const [bgUrl, setBgUrl] = useState<string | null>(null);
-  const [uploadingBg, setUploadingBg] = useState(false);
   const [togetherUrl, setTogetherUrl] = useState<string | null>(null);
-  const [uploadingTogether, setUploadingTogether] = useState(false);
   const [myWeather, setMyWeather] = useState<Weather | null>(null);
   const [partnerWeather, setPartnerWeather] = useState<Weather | null>(null);
   const [streak, setStreak] = useState<number | null>(null);
@@ -173,16 +163,6 @@ export default function Home() {
     setPicker(null);
   };
 
-  const toggleLock = async (v: boolean) => {
-    const ok = await setLockEnabled(v);
-    if (!ok && v) {
-      Alert.alert(
-        'Face ID indisponible',
-        'Active d’abord Face ID ou un code sur ton iPhone (Réglages).',
-      );
-    }
-  };
-
   const chooseMood = async (emoji: string, label: string) => {
     setMoodOpen(false);
     await updateProfile({
@@ -191,50 +171,6 @@ export default function Home() {
       mood_updated_at: new Date().toISOString(),
     });
   };
-
-  const pickAndUpload = async (
-    prefix: string,
-    setBusy: (b: boolean) => void,
-    apply: (path: string) => Promise<void>,
-  ) => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert('Accès aux photos refusé', 'Autorise l’accès dans les réglages.');
-      return;
-    }
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.7,
-      base64: true,
-    });
-    if (res.canceled || !res.assets[0]?.base64 || !couple) return;
-    setBusy(true);
-    try {
-      const ext = (res.assets[0].uri.split('.').pop() || 'jpg').toLowerCase();
-      const path = `${couple.id}/${prefix}-${Date.now()}.${ext === 'png' ? 'png' : 'jpg'}`;
-      const { error } = await supabase.storage
-        .from('photos')
-        .upload(path, decode(res.assets[0].base64!), {
-          contentType: ext === 'png' ? 'image/png' : 'image/jpeg',
-        });
-      if (error) throw error;
-      await apply(path);
-    } catch (e: any) {
-      Alert.alert('Oups', e?.message ?? 'Envoi impossible.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const changeBackground = () =>
-    pickAndUpload('home', setUploadingBg, (path) =>
-      updateCouple({ home_photo_path: path }),
-    );
-
-  const changeTogetherPhoto = () =>
-    pickAndUpload('together', setUploadingTogether, (path) =>
-      updateCouple({ together_photo_path: path }),
-    );
 
   const shareCode = async () => {
     if (!couple) return;
@@ -424,41 +360,20 @@ export default function Home() {
           {/* Comptes à rebours multiples */}
           <CountdownsCard />
 
-          <Button
-            title={uploadingBg ? 'Envoi…' : '🖼️ Changer la photo d’accueil'}
-            variant="secondary"
-            onPress={changeBackground}
-            loading={uploadingBg}
-          />
-          <Button
-            title={uploadingTogether ? 'Envoi…' : '💞 Photo « Ensemble depuis »'}
-            variant="secondary"
-            onPress={changeTogetherPhoto}
-            loading={uploadingTogether}
-            style={{ marginTop: spacing.sm }}
-          />
-
-          {/* Réglages */}
-          <Card>
-            <View style={styles.settingRow}>
-              <View style={{ flex: 1 }}>
-                <ThemedText variant="bodyMedium">Verrouiller avec Face ID</ThemedText>
-                <ThemedText variant="body" color={colors.texteGris}>
-                  Demande Face ID à l’ouverture de Fil
-                </ThemedText>
+          {/* Paramètres (page dédiée) */}
+          <Pressable onPress={() => router.push('/parametres')}>
+            <Card>
+              <View style={styles.settingRow}>
+                <View style={{ flex: 1 }}>
+                  <ThemedText variant="bodyMedium">Paramètres</ThemedText>
+                  <ThemedText variant="body" color={colors.texteGris}>
+                    Photos, Face ID, confidentialité, compte…
+                  </ThemedText>
+                </View>
+                <Text style={{ fontSize: 22, color: colors.texteGris }}>›</Text>
               </View>
-              <Switch
-                value={lockEnabled}
-                onValueChange={toggleLock}
-                trackColor={{ true: colors.sauge }}
-              />
-            </View>
-            <Pressable onPress={signOut} style={{ marginTop: spacing.md }}>
-              <ThemedText variant="bodyMedium" color={colors.corail}>
-                Se déconnecter
-              </ThemedText>
-            </Pressable>
-          </Card>
+            </Card>
+          </Pressable>
         </View>
       </ScrollView>
 
