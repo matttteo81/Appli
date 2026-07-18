@@ -1,0 +1,21 @@
+# Configuration Netlify — build de l'aperçu web de Lingo (Expo Web).
+# Netlify récupère le dépôt, installe les dépendances, lance l'export web,
+# puis publie le dossier statique généré.
+
+[build]
+  command = "npx expo export --platform web"
+  publish = "dist"
+
+[build.environment]
+  # Node 20 requis par Expo SDK 57 / React Native 0.86.
+  NODE_VERSION = "20"
+  # Clés PUBLIQUES du client Supabase (destinées au navigateur, protégées par
+  # les Row Level Security). Ce ne sont pas des secrets serveur.
+  EXPO_PUBLIC_SUPABASE_URL = "https://eatxasmfpzhukduvtmes.supabase.co"
+  EXPO_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVhdHhhc21mcHpodWtkdXZ0bWVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyOTk1NzYsImV4cCI6MjA5OTg3NTU3Nn0.pmAoSPlpI39mOKBvFtfTwOT0H2wHLYHpF1ViZLgoqUg"
+
+# expo-router est une SPA : toute route inconnue renvoie index.html.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

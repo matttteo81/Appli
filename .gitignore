@@ -46,4 +46,3 @@ eas.json.local
 
 # Aperçu web (build local)
 dist-web/
-netlify.toml
