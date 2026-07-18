@@ -43,3 +43,7 @@ eas.json.local
 # generated native folders
 /ios
 /android
+
+# Aperçu web (build local)
+dist-web/
+netlify.toml
