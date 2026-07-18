@@ -86,10 +86,13 @@ Moteur actuel : **gratuit** (aucune clé requise).
 > le secret est présent, sinon elle reste sur le moteur gratuit.
 
 ### 🔊 Audio en direct dans les salons
-La **présence** (qui est là, qui parle) est déjà temps réel via Supabase Realtime.
-Le **flux audio** lui-même se branche avec un SDK temps réel — au choix :
-[LiveKit](https://livekit.io), [Daily](https://daily.co) ou [Agora](https://agora.io).
-Point d'intégration : `app/room/[id].tsx` (bouton micro + composant `MemberBubble`).
+**Mode actuel : présence temps réel** (qui est là, qui prend la parole) via Supabase
+Realtime — 100 % compatible **Expo Go**, aucun build natif requis.
+
+Le **flux audio** lui-même viendra plus tard avec un SDK temps réel
+([LiveKit](https://livekit.io) recommandé). ⚠️ Cette étape fait **sortir l'app d'Expo
+Go** (dev build nécessaire) et demande un compte LiveKit Cloud (offre gratuite).
+Point d'intégration prévu : `app/room/[id].tsx` (bouton micro + composant `MemberBubble`).
 
 ## Notes
 

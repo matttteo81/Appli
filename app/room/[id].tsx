@@ -158,14 +158,14 @@ export default function RoomScreen() {
           {languageFlag(room.language)} {languageName(room.language)} · pratique orale
         </ThemedText>
 
-        {/* Bandeau : intégration audio à venir */}
+        {/* Bandeau : mode présence (audio en direct à venir avec le build natif) */}
         <View style={styles.audioNotice}>
           <ThemedText variant="label" color={colors.encre}>
-            🔊 Audio en direct
+            👋 Salon en présence
           </ThemedText>
           <ThemedText variant="body" color={colors.texteSombre} style={{ marginTop: 4 }}>
-            La présence est en temps réel. Le flux audio se branche via un SDK
-            (LiveKit / Daily / Agora) — voir README.
+            Vois en temps réel qui est là et qui prend la parole. Le flux audio en
+            direct arrivera avec la version « build natif » (LiveKit).
           </ThemedText>
         </View>
 
