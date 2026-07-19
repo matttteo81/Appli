@@ -66,7 +66,7 @@ export default function SignUp() {
             center
             style={{ marginTop: 6, marginBottom: spacing.xl, opacity: 0.8 }}
           >
-            Puis relie-toi à ta moitié.
+            Rejoins la communauté et trouve tes partenaires de langue.
           </ThemedText>
 
           <View style={{ gap: spacing.md }}>

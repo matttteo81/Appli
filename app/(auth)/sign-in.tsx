@@ -47,7 +47,7 @@ export default function SignIn() {
           keyboardShouldPersistTaps="handled"
         >
           <ThemedText variant="display" color={colors.creme} center>
-            Fil
+            Lingo 🌍
           </ThemedText>
           <ThemedText
             variant="body"
@@ -55,7 +55,7 @@ export default function SignIn() {
             center
             style={{ marginTop: 6, marginBottom: spacing.xl }}
           >
-            Le fil qui vous relie, où que vous soyez.
+            Apprends les langues avec de vrais partenaires.
           </ThemedText>
 
           <View style={{ gap: spacing.md }}>
