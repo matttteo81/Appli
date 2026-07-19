@@ -1,5 +1,5 @@
 /**
- * Palette de couleurs de "Fil".
+ * Palette de couleurs de "Wingo".
  * Chaque couleur a un nom évocateur pour rester fidèle à l'ambiance chaleureuse.
  */
 export const colors = {

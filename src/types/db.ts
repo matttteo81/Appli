@@ -1,5 +1,5 @@
 /**
- * Types de la base de données Lingo (échange linguistique).
+ * Types de la base de données Wingo (échange linguistique).
  * Écrits à la main pour rester simples ; reflètent supabase/hellotalk/schema.sql.
  */
 import type { LearningLang } from '../lib/languages';

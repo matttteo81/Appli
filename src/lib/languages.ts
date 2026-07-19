@@ -1,5 +1,5 @@
 /**
- * Langues proposées dans Lingo (échange linguistique).
+ * Langues proposées dans Wingo (échange linguistique).
  * Le `code` est un identifiant court (ISO 639-1 quand il existe) stocké en base.
  */
 export type Language = {

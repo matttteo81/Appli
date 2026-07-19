@@ -16,7 +16,7 @@ export class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: unknown) {
-    console.warn('[Fil] ErrorBoundary a intercepté une erreur :', error);
+    console.warn('[Wingo] ErrorBoundary a intercepté une erreur :', error);
   }
 
   render() {

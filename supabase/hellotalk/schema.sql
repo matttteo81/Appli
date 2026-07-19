@@ -1,5 +1,5 @@
 -- =============================================================================
--- Lingo — Schéma de base de données (échange linguistique)
+-- Wingo — Schéma de base de données (échange linguistique)
 -- =============================================================================
 -- À exécuter dans l'éditeur SQL de Supabase (une seule fois).
 -- Idempotent autant que possible : on peut le rejouer sans casse.

@@ -24,13 +24,13 @@ Notifications.setNotificationHandler({
 export async function registerForPushNotifications(): Promise<string | null> {
   // Les notifications push ne marchent que sur un vrai appareil.
   if (!Device.isDevice) {
-    console.warn('[Fil] Les notifications push nécessitent un vrai téléphone.');
+    console.warn('[Wingo] Les notifications push nécessitent un vrai téléphone.');
     return null;
   }
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
-      name: 'Lingo',
+      name: 'Wingo',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#F2A65A',
@@ -53,7 +53,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
   if (!projectId) {
     console.warn(
-      "[Fil] projectId EAS manquant : impossible d'obtenir le jeton push. " +
+      "[Wingo] projectId EAS manquant : impossible d'obtenir le jeton push. " +
         'Il sera disponible après `eas init` / le premier build.',
     );
     return null;
@@ -63,7 +63,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     const token = await Notifications.getExpoPushTokenAsync({ projectId });
     return token.data;
   } catch (e) {
-    console.warn('[Fil] Échec récupération du jeton push :', e);
+    console.warn('[Wingo] Échec récupération du jeton push :', e);
     return null;
   }
 }

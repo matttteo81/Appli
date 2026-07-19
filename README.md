@@ -1,4 +1,4 @@
-# Lingo — échange linguistique 🌍
+# Wingo — échange linguistique 🌍
 
 Application mobile (Expo / React Native) pour **apprendre les langues entre vrais partenaires**.
 Ce n'est **pas** un site de rencontre : tout tourne autour de la pratique des langues.
@@ -96,5 +96,5 @@ Point d'intégration prévu : `app/room/[id].tsx` (bouton micro + composant `Mem
 
 ## Notes
 
-- `Lingo` est un **nom de travail** : renomme librement dans `app.json` (`name`, `slug`, `scheme`, `bundleIdentifier`, `package`).
+- Nom de l'app : **Wingo** (défini dans `app.json` : `name`, `slug`, `scheme`, `bundleIdentifier`, `package`).
 - Pour publier sur les stores, crée un projet EAS (`npx eas init`) et une URL publique pour la politique de confidentialité (`app/confidentialite.tsx`).

@@ -1,25 +1,25 @@
 {
   "expo": {
-    "name": "Lingo",
-    "slug": "lingo",
+    "name": "Wingo",
+    "slug": "wingo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "lingo",
+    "scheme": "wingo",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.lingo.app",
+      "bundleIdentifier": "com.wingo.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Lingo utilise ta position pour te proposer des partenaires linguistiques proches de toi.",
-        "NSMicrophoneUsageDescription": "Lingo utilise le micro pour tes messages vocaux et les salons de pratique orale.",
-        "NSPhotoLibraryUsageDescription": "Lingo a besoin d'accéder à tes photos pour choisir un avatar.",
-        "NSCameraUsageDescription": "Lingo peut utiliser l'appareil photo pour ta photo de profil.",
+        "NSLocationWhenInUseUsageDescription": "Wingo utilise ta position pour te proposer des partenaires linguistiques proches de toi.",
+        "NSMicrophoneUsageDescription": "Wingo utilise le micro pour tes messages vocaux et les salons de pratique orale.",
+        "NSPhotoLibraryUsageDescription": "Wingo a besoin d'accéder à tes photos pour choisir un avatar.",
+        "NSCameraUsageDescription": "Wingo peut utiliser l'appareil photo pour ta photo de profil.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.lingo.app",
+      "package": "com.wingo.app",
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png"
@@ -54,7 +54,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Lingo a besoin d'accéder à tes photos pour choisir un avatar."
+          "photosPermission": "Wingo a besoin d'accéder à tes photos pour choisir un avatar."
         }
       ],
       [
@@ -66,13 +66,13 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Lingo utilise ta position pour te proposer des partenaires proches de toi."
+          "locationWhenInUsePermission": "Wingo utilise ta position pour te proposer des partenaires proches de toi."
         }
       ],
       [
         "expo-audio",
         {
-          "microphonePermission": "Lingo utilise le micro pour tes messages vocaux et les salons de pratique orale."
+          "microphonePermission": "Wingo utilise le micro pour tes messages vocaux et les salons de pratique orale."
         }
       ]
     ],

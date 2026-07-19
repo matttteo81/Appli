@@ -47,7 +47,7 @@ export default function SignIn() {
           keyboardShouldPersistTaps="handled"
         >
           <ThemedText variant="display" color={colors.creme} center>
-            Lingo 🌍
+            Wingo 🌍
           </ThemedText>
           <ThemedText
             variant="body"

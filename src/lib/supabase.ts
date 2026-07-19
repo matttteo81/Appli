@@ -21,7 +21,7 @@ export const isSupabaseConfigured =
 if (!isSupabaseConfigured) {
   // On n'interrompt pas l'app : un écran d'aide s'affichera à la place.
   console.warn(
-    "[Fil] Supabase n'est pas configuré. Crée un fichier .env avec EXPO_PUBLIC_SUPABASE_URL et EXPO_PUBLIC_SUPABASE_ANON_KEY.",
+    "[Wingo] Supabase n'est pas configuré. Crée un fichier .env avec EXPO_PUBLIC_SUPABASE_URL et EXPO_PUBLIC_SUPABASE_ANON_KEY.",
   );
 }
 

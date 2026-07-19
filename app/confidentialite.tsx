@@ -39,7 +39,7 @@ export default function Confidentialite() {
         <ThemedText variant="body" color={colors.texteGris}>Dernière mise à jour : {UPDATED}</ThemedText>
 
         <P>
-          Lingo est une application d’échange linguistique. Nous prenons ta vie privée très au
+          Wingo est une application d’échange linguistique. Nous prenons ta vie privée très au
           sérieux : tes données servent uniquement à te mettre en relation avec des partenaires
           de langue et à faire fonctionner l’app. Elles ne sont ni vendues, ni utilisées à des
           fins publicitaires.
@@ -82,7 +82,7 @@ export default function Confidentialite() {
         <H>La localisation</H>
         <P>
           La position sert seulement à afficher ta ville et la distance avec d’éventuels
-          partenaires. Lingo ne suit jamais ta position en arrière-plan.
+          partenaires. Wingo ne suit jamais ta position en arrière-plan.
         </P>
 
         <H>Conserver et supprimer</H>
@@ -94,7 +94,7 @@ export default function Confidentialite() {
 
         <H>Enfants</H>
         <P>
-          Lingo n’est pas destinée aux personnes de moins de 13 ans.
+          Wingo n’est pas destinée aux personnes de moins de 13 ans.
         </P>
 
         <H>Nous contacter</H>
