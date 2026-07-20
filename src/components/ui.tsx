@@ -87,7 +87,7 @@ export function Button({
 }: {
   title: string;
   onPress?: PressableProps['onPress'];
-  variant?: 'primary' | 'secondary' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'light';
   loading?: boolean;
   disabled?: boolean;
   style?: ViewProps['style'];
@@ -96,15 +96,19 @@ export function Button({
   const bg =
     variant === 'primary'
       ? colors.bleu
-      : variant === 'secondary'
-        ? colors.cremeDoux
-        : 'transparent';
+      : variant === 'light'
+        ? '#FFFFFF'
+        : variant === 'secondary'
+          ? colors.cremeDoux
+          : 'transparent';
   const fg =
     variant === 'primary'
       ? '#FFFFFF'
-      : variant === 'secondary'
-        ? colors.encre
-        : colors.bleu;
+      : variant === 'light'
+        ? colors.bleu
+        : variant === 'secondary'
+          ? colors.encre
+          : colors.bleu;
   return (
     <Pressable
       onPress={onPress}

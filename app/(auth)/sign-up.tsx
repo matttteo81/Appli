@@ -57,14 +57,14 @@ export default function SignUp() {
           }}
           keyboardShouldPersistTaps="handled"
         >
-          <ThemedText variant="display" color={colors.encre} center>
+          <ThemedText variant="display" color="#FFFFFF" center>
             Créer un compte
           </ThemedText>
           <ThemedText
             variant="body"
-            color={colors.encre}
+            color="#FFFFFF"
             center
-            style={{ marginTop: 6, marginBottom: spacing.xl, opacity: 0.8 }}
+            style={{ marginTop: 6, marginBottom: spacing.xl, opacity: 0.9 }}
           >
             Rejoins la communauté et trouve tes partenaires de langue.
           </ThemedText>
@@ -85,25 +85,21 @@ export default function SignUp() {
               onChangeText={setPassword}
             />
             {error ? (
-              <ThemedText variant="body" color={colors.encre} center>
+              <ThemedText variant="body" color="#FFFFFF" center>
                 {error}
               </ThemedText>
             ) : null}
             {info ? (
-              <ThemedText variant="body" color={colors.encre} center>
+              <ThemedText variant="body" color="#FFFFFF" center>
                 {info}
               </ThemedText>
             ) : null}
-            <Button
-              title="Créer mon compte"
-              onPress={onSubmit}
-              loading={loading}
-            />
+            <Button title="Créer mon compte" variant="light" onPress={onSubmit} loading={loading} />
           </View>
 
           <View style={{ marginTop: spacing.xl, alignItems: 'center' }}>
             <Link href="/(auth)/sign-in">
-              <ThemedText variant="bodyMedium" color={colors.encre}>
+              <ThemedText variant="bodyMedium" color="#FFFFFF">
                 J'ai déjà un compte
               </ThemedText>
             </Link>

@@ -77,7 +77,7 @@ export default function SignIn() {
                 {error}
               </ThemedText>
             ) : null}
-            <Button title="Se connecter" onPress={onSubmit} loading={loading} />
+            <Button title="Se connecter" variant="light" onPress={onSubmit} loading={loading} />
           </View>
 
           <View style={{ marginTop: spacing.xl, alignItems: 'center' }}>
@@ -85,8 +85,8 @@ export default function SignIn() {
               Pas encore de compte ?
             </ThemedText>
             <Link href="/(auth)/sign-up" style={{ marginTop: 4 }}>
-              <ThemedText variant="bodyMedium" color={colors.ambre}>
-                Créer un compte
+              <ThemedText variant="bodyMedium" color="#FFFFFF">
+                Créer un compte →
               </ThemedText>
             </Link>
           </View>
