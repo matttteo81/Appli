@@ -1,45 +1,59 @@
 /**
  * Palette de couleurs de "Wingo".
- * Chaque couleur a un nom évocateur pour rester fidèle à l'ambiance chaleureuse.
+ * Identité : bleu vif Wingo en primaire, orange en accent, neutres clairs et
+ * aérés (inspiration fintech premium type Revolut).
+ *
+ * NB : on conserve les anciens noms de tokens (encre, prune, ambre…) en alias
+ * pour que tout l'app se re-skinne sans casser les imports existants.
  */
 export const colors = {
-  encre: '#1B1B3A', // Indigo encre — fonds sombres, texte sur clair
-  prune: '#4A3B6B', // Prune crépuscule — surfaces secondaires
-  ambre: '#F2A65A', // Ambre — accent principal
-  corail: '#EF8C7C', // Corail — accent secondaire
-  creme: '#FBF6EF', // Crème nuage — fond clair
-  sauge: '#A8C3A0', // Vert sauge — progression / succès
+  // --- Marque Wingo ---
+  bleu: '#0A5CFF', // primaire
+  bleuClair: '#4FA3FF',
+  bleuFonce: '#083A9E',
+  orange: '#FF8A3D', // accent
+  orangeFonce: '#F2711C',
+  vert: '#23C16B', // succès
 
-  // Nuances utilitaires dérivées
-  encreDoux: '#2A2A4E',
-  pruneDoux: '#5C4B80',
-  cremeDoux: '#F3ECE1',
-  texteClair: '#FBF6EF',
-  texteSombre: '#1B1B3A',
-  texteGris: '#6E6A7C',
-  bordure: 'rgba(27, 27, 58, 0.12)',
-  bordureClaire: 'rgba(251, 246, 239, 0.16)',
-  overlay: 'rgba(27, 27, 58, 0.55)',
+  // --- Neutres ---
+  fond: '#F4F6FB', // fond d'écran général
+  carte: '#FFFFFF', // surfaces / cartes
+  encre: '#0B1B3A', // texte principal (navy profond)
+  encreDoux: '#14254A',
+  texteGris: '#6B7A99', // texte secondaire
+  texteClair: '#FFFFFF',
+  texteSombre: '#0B1B3A',
+  bordure: 'rgba(11, 27, 58, 0.08)',
+  bordureClaire: 'rgba(255, 255, 255, 0.18)',
+  overlay: 'rgba(11, 27, 58, 0.55)',
+
+  // --- Alias rétro-compat (anciens noms) ---
+  prune: '#0A5CFF', // = primaire (teinte active, liens)
+  pruneDoux: '#3D7BFF',
+  ambre: '#0A5CFF', // = primaire (boutons)
+  corail: '#FF8A3D', // = accent orange
+  creme: '#F4F6FB', // = fond
+  cremeDoux: '#E9EEF9', // surfaces douces (avatars, chips)
+  sauge: '#23C16B', // = succès vert
 } as const;
 
 export type ColorName = keyof typeof colors;
 
 /**
- * Dégradés du "ciel jumeau" selon le moment de la journée.
- * On choisit le dégradé à partir de l'heure locale de chaque partenaire.
+ * Dégradés de la marque (utilisés en fond d'écrans héros et d'authentification).
  */
 export const skyGradients = {
-  aube: ['#4A3B6B', '#EF8C7C', '#F2A65A'], // crépuscule/aube rosé
-  jour: ['#7FB0E0', '#A9CDEA', '#FBF6EF'], // ciel bleu clair
-  crepuscule: ['#F2A65A', '#EF8C7C', '#4A3B6B'], // coucher ambré
-  nuit: ['#1B1B3A', '#2A2A4E', '#4A3B6B'], // nuit étoilée
+  aube: ['#4FA3FF', '#0A5CFF'],
+  jour: ['#4FA3FF', '#0A5CFF'],
+  crepuscule: ['#4FA3FF', '#0A5CFF'],
+  nuit: ['#0A5CFF', '#083A9E'],
 } as const;
 
 export type SkyMoment = keyof typeof skyGradients;
 
-/**
- * Détermine le moment du ciel à partir d'une heure (0-23).
- */
+/** Dégradé principal de la marque (bleu Wingo). */
+export const wingoGradient = ['#0A5CFF', '#4FA3FF'] as const;
+
 export function momentForHour(hour: number): SkyMoment {
   if (hour >= 5 && hour < 8) return 'aube';
   if (hour >= 8 && hour < 18) return 'jour';
