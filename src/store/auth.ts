@@ -3,6 +3,27 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../types/db';
 
+/**
+ * Enveloppe une promesse avec un délai maximal : si l'appel réseau traîne
+ * (Supabase injoignable, session périmée…), on rejette au lieu de bloquer
+ * l'app indéfiniment sur un écran de chargement.
+ */
+function withTimeout<T>(p: PromiseLike<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('timeout')), ms);
+    Promise.resolve(p).then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
+}
+
 type AuthState = {
   initialized: boolean;
   loading: boolean;
@@ -26,10 +47,13 @@ export const useAuth = create<AuthState>((set, get) => ({
   profile: null,
 
   async init() {
-    const { data } = await supabase.auth.getSession();
-    set({ session: data.session });
-    if (data.session) {
-      await get().refresh();
+    // On ne bloque JAMAIS le démarrage : même si le réseau/Supabase traîne,
+    // l'app se monte et le rafraîchissement se fait en arrière-plan.
+    try {
+      const { data } = await withTimeout(supabase.auth.getSession(), 8000);
+      set({ session: data?.session ?? null });
+    } catch {
+      set({ session: null });
     }
     supabase.auth.onAuthStateChange((_event, session) => {
       set({ session });
@@ -40,6 +64,10 @@ export const useAuth = create<AuthState>((set, get) => ({
       }
     });
     set({ initialized: true });
+    if (get().session) {
+      // fire-and-forget (déjà robuste : voir refresh())
+      get().refresh();
+    }
   },
 
   async refresh() {
@@ -47,32 +75,44 @@ export const useAuth = create<AuthState>((set, get) => ({
     if (!session) return;
     const userId = session.user.id;
 
-    // Profil de l'utilisateur — créé automatiquement s'il n'existe pas encore.
-    let { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    try {
+      // Profil de l'utilisateur — créé automatiquement s'il n'existe pas encore.
+      const { data: profile, error } = await withTimeout(
+        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+        8000,
+      );
+      if (error) throw error;
 
-    if (!profile) {
+      if (profile) {
+        set({ profile: profile as Profile });
+        return;
+      }
+
       const displayName =
         (session.user.user_metadata?.display_name as string) ?? 'Apprenant·e';
-      const { data: created } = await supabase
-        .from('profiles')
-        .upsert({ id: userId, display_name: displayName }, { onConflict: 'id' })
-        .select('*')
-        .single();
-      profile = created ?? null;
-      if (!profile) {
-        const { data: refetched } = await supabase
+      const { data: created } = await withTimeout(
+        supabase
           .from('profiles')
+          .upsert({ id: userId, display_name: displayName }, { onConflict: 'id' })
           .select('*')
-          .eq('id', userId)
-          .maybeSingle();
-        profile = refetched ?? null;
+          .single(),
+        8000,
+      );
+      if (created) {
+        set({ profile: created as Profile });
+        return;
       }
+      throw new Error('profil introuvable');
+    } catch {
+      // Session invalide/expirée ou backend injoignable : on déconnecte
+      // proprement pour renvoyer vers l'écran de connexion (jamais bloqué).
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        /* ignore */
+      }
+      set({ session: null, profile: null });
     }
-    set({ profile: (profile as Profile) ?? null });
   },
 
   async signUp(email, password, displayName) {
@@ -84,9 +124,7 @@ export const useAuth = create<AuthState>((set, get) => ({
         options: { data: { display_name: displayName.trim() } },
       });
       if (error) throw error;
-      const { data } = await supabase.auth.getSession();
-      set({ session: data.session });
-      if (data.session) await get().refresh();
+      // La session + le profil sont pris en charge par onAuthStateChange.
     } finally {
       set({ loading: false });
     }
@@ -100,9 +138,7 @@ export const useAuth = create<AuthState>((set, get) => ({
         password,
       });
       if (error) throw error;
-      const { data } = await supabase.auth.getSession();
-      set({ session: data.session });
-      await get().refresh();
+      // La session + le profil sont pris en charge par onAuthStateChange.
     } finally {
       set({ loading: false });
     }
