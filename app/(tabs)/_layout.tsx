@@ -1,5 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
+import { StyleSheet } from 'react-native';
+import { BlurView } from 'expo-blur';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { colors } from '../../src/theme/colors';
 import { fonts } from '../../src/theme/typography';
@@ -8,7 +10,7 @@ type IconName = 'discover' | 'chats' | 'rooms' | 'profile';
 
 function TabIcon({ name, focused }: { name: IconName; focused: boolean }) {
   const stroke = focused ? colors.bleu : colors.texteGris;
-  const sw = focused ? 2.4 : 1.9;
+  const sw = focused ? 2.5 : 1.9;
   const common = {
     stroke,
     strokeWidth: sw,
@@ -17,7 +19,7 @@ function TabIcon({ name, focused }: { name: IconName; focused: boolean }) {
     strokeLinejoin: 'round' as const,
   };
   return (
-    <Svg width={26} height={26} viewBox="0 0 24 24">
+    <Svg width={25} height={25} viewBox="0 0 24 24">
       {name === 'discover' && (
         <>
           <Circle cx={12} cy={12} r={9} {...common} />
@@ -50,15 +52,26 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.bleu,
         tabBarInactiveTintColor: colors.texteGris,
+        // Barre flottante « bulle » translucide (verre dépoli).
         tabBarStyle: {
-          backgroundColor: colors.carte,
-          borderTopColor: colors.bordure,
-          borderTopWidth: 1,
-          height: 88,
-          paddingTop: 8,
-          paddingBottom: 12,
+          position: 'absolute',
+          left: 18,
+          right: 18,
+          bottom: 26,
+          height: 66,
+          borderRadius: 33,
+          borderTopWidth: 0,
+          backgroundColor: 'transparent',
+          elevation: 0,
+          shadowColor: '#0B1B3A',
+          shadowOpacity: 0.14,
+          shadowRadius: 24,
+          shadowOffset: { width: 0, height: 12 },
+          paddingHorizontal: 6,
         },
-        tabBarLabelStyle: { fontFamily: fonts.bodySemiBold, fontSize: 11, marginTop: 2 },
+        tabBarBackground: () => <BlurView intensity={40} tint="light" style={styles.blur} />,
+        tabBarItemStyle: { height: 66, paddingTop: 12, paddingBottom: 8 },
+        tabBarLabelStyle: { fontFamily: fonts.bodySemiBold, fontSize: 10.5 },
       }}
     >
       <Tabs.Screen
@@ -80,3 +93,18 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  blur: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 33,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.62)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.7)',
+  },
+});
