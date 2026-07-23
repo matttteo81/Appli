@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Alert,
   Keyboard,
+  Modal,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
@@ -14,10 +15,17 @@ import { useAuth } from '../store/auth';
 import { supabase } from '../lib/supabase';
 import { VoiceRecorder } from './VoiceRecorder';
 
+// Les petites attentions envoyables d'un tap. On réutilise le système de
+// « nudge » (notification push + popup en temps réel chez la moitié).
+const ATTENTIONS = [
+  { emoji: '😢', message: 'Tu me manques' },
+  { emoji: '💗', message: 'Je pense fort à toi' },
+];
+
 /**
- * Bouton flottant en forme de cœur. À l'appui :
- *  1. enregistre un "nudge" en base (pour l'historique + le temps réel)
- *  2. déclenche l'Edge Function qui envoie la vraie notification push
+ * Bouton flottant en forme de cœur. À l'appui, un petit choix s'ouvre :
+ *  - « Tu me manques » / « Je pense fort à toi » → nudge + push
+ *  - 🎙️ message vocal (aussi accessible en appui long)
  */
 export function MissYouButton({ bottom = 90 }: { bottom?: number }) {
   const profile = useAuth((s) => s.profile);
@@ -27,22 +35,15 @@ export function MissYouButton({ bottom = 90 }: { bottom?: number }) {
   const [justSent, setJustSent] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [recorderOpen, setRecorderOpen] = useState(false);
+  const [chooserOpen, setChooserOpen] = useState(false);
 
   // On masque le cœur quand le clavier est ouvert, pour ne pas gêner
   // le champ de saisie (Mots, Playlist…).
   useEffect(() => {
-    const show = Keyboard.addListener('keyboardWillShow', () =>
-      setKeyboardOpen(true),
-    );
-    const showA = Keyboard.addListener('keyboardDidShow', () =>
-      setKeyboardOpen(true),
-    );
-    const hide = Keyboard.addListener('keyboardWillHide', () =>
-      setKeyboardOpen(false),
-    );
-    const hideA = Keyboard.addListener('keyboardDidHide', () =>
-      setKeyboardOpen(false),
-    );
+    const show = Keyboard.addListener('keyboardWillShow', () => setKeyboardOpen(true));
+    const showA = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener('keyboardWillHide', () => setKeyboardOpen(false));
+    const hideA = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
     return () => {
       show.remove();
       showA.remove();
@@ -51,18 +52,22 @@ export function MissYouButton({ bottom = 90 }: { bottom?: number }) {
     };
   }, []);
 
-  const onPress = async () => {
-    if (sending) return;
+  const notLinked = () => {
+    Alert.alert(
+      'Ta moitié n’est pas encore reliée',
+      'Partage ton code de couple depuis l’accueil pour vous relier.',
+    );
+  };
+
+  const openChooser = () => {
+    if (!partner || !couple || !profile) return notLinked();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setChooserOpen(true);
+  };
 
-    if (!partner || !couple || !profile) {
-      Alert.alert(
-        'Ta moitié n’est pas encore reliée',
-        'Partage ton code de couple depuis l’accueil pour vous relier.',
-      );
-      return;
-    }
-
+  const sendAttention = async (message: string) => {
+    if (sending || !partner || !couple || !profile) return;
+    setChooserOpen(false);
     setSending(true);
     try {
       // 1) On enregistre le nudge (déclenche le popup en direct côté partenaire).
@@ -70,18 +75,12 @@ export function MissYouButton({ bottom = 90 }: { bottom?: number }) {
         couple_id: couple.id,
         from_id: profile.id,
         to_id: partner.id,
-        message: 'Tu me manques',
+        message,
       });
-
       // 2) On envoie la notification push (même app fermée).
       await supabase.functions.invoke('send-nudge', {
-        body: {
-          to_id: partner.id,
-          from_name: profile.display_name,
-          message: 'Tu me manques',
-        },
+        body: { to_id: partner.id, from_name: profile.display_name, message },
       });
-
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setJustSent(true);
       setTimeout(() => setJustSent(false), 1800);
@@ -93,14 +92,9 @@ export function MissYouButton({ bottom = 90 }: { bottom?: number }) {
   };
 
   const openRecorder = () => {
-    if (!partner || !couple || !profile) {
-      Alert.alert(
-        'Ta moitié n’est pas encore reliée',
-        'Partage ton code de couple depuis l’accueil pour vous relier.',
-      );
-      return;
-    }
+    if (!partner || !couple || !profile) return notLinked();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setChooserOpen(false);
     setRecorderOpen(true);
   };
 
@@ -109,7 +103,7 @@ export function MissYouButton({ bottom = 90 }: { bottom?: number }) {
   return (
     <>
       <Pressable
-        onPress={onPress}
+        onPress={openChooser}
         onLongPress={openRecorder}
         delayLongPress={280}
         style={({ pressed }) => [
@@ -117,7 +111,7 @@ export function MissYouButton({ bottom = 90 }: { bottom?: number }) {
           { bottom },
           pressed && { transform: [{ scale: 0.92 }] },
         ]}
-        accessibilityLabel="Envoyer « Tu me manques » à ta moitié. Appui long pour un message vocal."
+        accessibilityLabel="Envoyer une attention à ta moitié. Appui long pour un message vocal."
       >
         <View style={styles.inner}>
           <Text style={styles.heart}>{justSent ? '💛' : '🤍'}</Text>
@@ -131,6 +125,28 @@ export function MissYouButton({ bottom = 90 }: { bottom?: number }) {
           </View>
         ) : null}
       </Pressable>
+
+      {/* Petit choix d'attentions */}
+      <Modal visible={chooserOpen} transparent animationType="fade" onRequestClose={() => setChooserOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setChooserOpen(false)}>
+          <View style={[styles.chooser, { bottom: bottom + 74 }]}>
+            {ATTENTIONS.map((a) => (
+              <Pressable
+                key={a.message}
+                style={styles.option}
+                onPress={() => sendAttention(a.message)}
+              >
+                <Text style={styles.optionEmoji}>{a.emoji}</Text>
+                <Text style={styles.optionText}>{a.message}</Text>
+              </Pressable>
+            ))}
+            <Pressable style={styles.option} onPress={openRecorder}>
+              <Text style={styles.optionEmoji}>🎙️</Text>
+              <Text style={styles.optionText}>Message vocal</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
 
       {recorderOpen && partner && couple && profile ? (
         <VoiceRecorder
@@ -190,4 +206,27 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     fontSize: 13,
   },
+  backdrop: { flex: 1, backgroundColor: 'rgba(27,27,58,0.25)' },
+  chooser: {
+    position: 'absolute',
+    right: 20,
+    gap: 8,
+    alignItems: 'flex-end',
+  },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.creme,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 999,
+    shadowColor: colors.encre,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+  optionEmoji: { fontSize: 20 },
+  optionText: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.encre },
 });
