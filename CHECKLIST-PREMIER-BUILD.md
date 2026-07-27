@@ -50,6 +50,15 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
 - [ ] GIF créé depuis ses propres photos
 - [ ] Réactions à un message (emoji)
 - [ ] Répondre à un message précis (reply)
+- [ ] **Traduction** 🈶 : un message dans l'autre langue affiche « 🌐 Traduire » →
+      tap → traduction sous le message (MyMemory gratuit). « Masquer » pour cacher.
+- [ ] Un message dans TA langue n'affiche PAS le lien (normal)
+- [ ] *(Qualité FR↔中文 « correcte » avec MyMemory — voir upgrade Azure plus bas)*
+
+### 💗 Cœur flottant — attentions
+- [ ] Tap sur le cœur → choix : « Tu me manques » / « Je pense fort à toi » / 🎙️ vocal
+- [ ] Chaque envoi déclenche le popup + la notif chez la moitié
+- [ ] Appui long sur le cœur → ouvre directement le vocal
 
 ---
 
@@ -217,6 +226,16 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
 - [ ] Connecter la **partenaire (Chine)** à TestFlight
 - [ ] **Widget photo** façon Locket (sur la tuyauterie App Group déjà en place)
 - [ ] (Éventuel) épingles photo avec **vraie vignette** au lieu de l'icône 📷
+
+## 🈶 Upgrade traduction vers Azure (meilleure qualité, gratuit 2 M car./mois)
+
+Quand tu veux passer de MyMemory à Azure :
+1. Créer un compte **Azure** → ressource **Translator** tier **Free F0** → récupérer
+   la **clé** + la **région** (ex. `westeurope`).
+2. Déployer la fonction `supabase/functions/translate/` sur Supabase.
+3. Définir les secrets `AZURE_TRANSLATOR_KEY` et `AZURE_TRANSLATOR_REGION`.
+4. Dans `src/lib/translate.ts`, passer `USE_EDGE_FN` à `true`.
+   → bascule automatique, la clé reste côté serveur (jamais dans l'app).
 
 ---
 

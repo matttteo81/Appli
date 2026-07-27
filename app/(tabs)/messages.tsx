@@ -28,6 +28,7 @@ import { useAuth } from '../../src/store/auth';
 import { supabase } from '../../src/lib/supabase';
 import type { Message } from '../../src/types/db';
 import { BUILTIN_GIFS, gifSource } from '../../src/lib/gifs';
+import { detectLang, readerLang, translateText } from '../../src/lib/translate';
 
 const MSG_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
 
@@ -41,6 +42,28 @@ export default function Messages() {
   const [busy, setBusy] = useState(false);
   const [actionMsg, setActionMsg] = useState<Message | null>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
+
+  // Traduction : langue de lecture (appareil) + état par message.
+  const reader = React.useMemo(() => readerLang(), []);
+  const [tr, setTr] = useState<
+    Record<string, { text?: string; loading?: boolean; shown?: boolean }>
+  >({});
+
+  const toggleTranslate = async (m: Message) => {
+    if (!m.body) return;
+    const cur = tr[m.id];
+    if (cur?.shown) {
+      setTr((s) => ({ ...s, [m.id]: { ...cur, shown: false } }));
+      return;
+    }
+    if (cur?.text !== undefined || cur?.loading) {
+      setTr((s) => ({ ...s, [m.id]: { ...cur, shown: true } }));
+      return;
+    }
+    setTr((s) => ({ ...s, [m.id]: { loading: true, shown: true } }));
+    const out = await translateText(m.body, reader);
+    setTr((s) => ({ ...s, [m.id]: { text: out ?? '', loading: false, shown: true } }));
+  };
 
   const msgById = React.useMemo(() => {
     const m: Record<string, Message> = {};
@@ -216,6 +239,30 @@ export default function Messages() {
                         ))}
                       </View>
                     ) : null}
+
+                    {/* Traduction (si le message n'est pas déjà dans ta langue) */}
+                    {item.body && detectLang(item.body) !== reader ? (
+                      <View style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '100%' }}>
+                        <Pressable onPress={() => toggleTranslate(item)} hitSlop={6}>
+                          <Text style={styles.translateLink}>
+                            {tr[item.id]?.loading
+                              ? '🌐 …'
+                              : tr[item.id]?.shown
+                              ? 'Masquer'
+                              : '🌐 Traduire'}
+                          </Text>
+                        </Pressable>
+                        {tr[item.id]?.shown && !tr[item.id]?.loading ? (
+                          tr[item.id]?.text ? (
+                            <View style={styles.translated}>
+                              <Text style={styles.translatedText}>{tr[item.id]?.text}</Text>
+                            </View>
+                          ) : (
+                            <Text style={styles.translateFail}>Traduction indisponible</Text>
+                          )
+                        ) : null}
+                      </View>
+                    ) : null}
                   </Pressable>
                 </View>
               );
@@ -379,6 +426,17 @@ const styles = StyleSheet.create({
     borderColor: colors.bordure,
   },
   reactionBadge: { fontSize: 13 },
+  translateLink: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.corail, marginTop: 4 },
+  translated: {
+    backgroundColor: colors.cremeDoux,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginTop: 3,
+    maxWidth: '100%',
+  },
+  translatedText: { fontFamily: fonts.bodyRegular, fontSize: 15, color: colors.encre, fontStyle: 'italic' },
+  translateFail: { fontFamily: fonts.bodyRegular, fontSize: 12, color: colors.texteGris, marginTop: 3 },
   replyBar: {
     flexDirection: 'row',
     alignItems: 'center',
