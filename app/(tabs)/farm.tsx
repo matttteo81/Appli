@@ -16,7 +16,8 @@ import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useAuth } from '../../src/store/auth';
 import { supabase } from '../../src/lib/supabase';
 import type { Farm, FarmResident } from '../../src/types/db';
-import { ADULT_AT, HATCH_AT, stageForFeeds } from '../../src/lib/farmpixel';
+import { ADULT_AT, HATCH_AT, seasonNow, stageForFeeds } from '../../src/lib/farmpixel';
+import { fetchWeather, WeatherKind } from '../../src/lib/weather';
 
 function computeNight(d = new Date()) {
   const h = d.getHours();
@@ -39,6 +40,8 @@ export default function FarmScreen() {
   const [autoNight, setAutoNight] = useState(computeNight());
   const [override, setOverride] = useState<boolean | null>(null);
   const night = override ?? autoNight;
+  const [weather, setWeather] = useState<WeatherKind>('clear');
+  const season = seasonNow();
 
   const reload = useCallback(async () => {
     if (!couple) return;
@@ -81,6 +84,19 @@ export default function FarmScreen() {
     const t = setInterval(() => setAutoNight(computeNight()), 60 * 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Météo réelle de ta ville → météo de la ferme (il neige chez toi = il neige ici).
+  useEffect(() => {
+    if (profile?.city_lat == null || profile?.city_lng == null) return;
+    let active = true;
+    const load = async () => {
+      const wx = await fetchWeather(profile.city_lat!, profile.city_lng!);
+      if (active && wx) setWeather(wx.kind);
+    };
+    load();
+    const t = setInterval(load, 15 * 60 * 1000);
+    return () => { active = false; clearInterval(t); };
+  }, [profile?.city_lat, profile?.city_lng]);
 
   const feeds = farm?.active_feeds ?? 0;
   const active = farm?.active_species
@@ -156,7 +172,7 @@ export default function FarmScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <PixelFarm residents={residents} active={active} night={night} />
+      <PixelFarm residents={residents} active={active} night={night} weather={weather} season={season} />
 
       {/* HUD haut */}
       <View style={styles.top} pointerEvents="box-none">

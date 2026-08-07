@@ -2,12 +2,27 @@
  * Météo actuelle via l'API Open-Meteo (gratuite, sans clé, mondiale).
  * Renvoie aussi le fuseau horaire IANA déduit des coordonnées.
  */
+export type WeatherKind = 'clear' | 'clouds' | 'rain' | 'snow' | 'fog' | 'storm';
+
 export type Weather = {
   temp: number;
   emoji: string;
   label: string;
+  kind: WeatherKind;
   timezone: string;
 };
+
+/** Classe un code météo WMO en grande famille (pour la ferme, etc.). */
+export function codeKind(code: number): WeatherKind {
+  if (code >= 71 && code <= 77) return 'snow';
+  if (code >= 85 && code <= 86) return 'snow';
+  if (code >= 51 && code <= 67) return 'rain';
+  if (code >= 80 && code <= 82) return 'rain';
+  if (code >= 95) return 'storm';
+  if (code === 45 || code === 48) return 'fog';
+  if (code === 2 || code === 3) return 'clouds';
+  return 'clear';
+}
 
 export async function fetchWeather(
   lat: number,
@@ -25,6 +40,7 @@ export async function fetchWeather(
       temp: Math.round(json?.current?.temperature_2m ?? 0),
       emoji: info.emoji,
       label: info.label,
+      kind: codeKind(code),
       timezone: json?.timezone ?? 'UTC',
     };
   } catch {

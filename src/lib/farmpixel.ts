@@ -4,6 +4,17 @@ import type { ImageSourcePropType } from 'react-native';
 export const HATCH_AT = 6; // éclosion
 export const ADULT_AT = 30; // adulte (~15 jours à 2 nourrissages/jour)
 
+export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
+
+/** Saison de l'hémisphère nord (France & Chine) d'après le mois. */
+export function seasonNow(d = new Date()): Season {
+  const m = d.getMonth(); // 0 = janvier
+  if (m >= 2 && m <= 4) return 'spring';
+  if (m >= 5 && m <= 7) return 'summer';
+  if (m >= 8 && m <= 10) return 'autumn';
+  return 'winter';
+}
+
 export type Sprite = { src: ImageSourcePropType; w: number; h: number };
 
 const EGG: Sprite = { src: require('../../assets/farm/egg.png'), w: 72, h: 78 };

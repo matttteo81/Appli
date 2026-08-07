@@ -76,6 +76,14 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
 - [ ] La nuit : les animaux vont dormir dans leur niche avec les **Zzz**
 - [ ] Sprites chat / chien redessinés, nets
 
+### 🌾 Ferme enrichie (NOUVEAU)
+- [ ] 🦋 Papillons qui **battent des ailes** et volent en zigzag (le jour, beau temps)
+- [ ] 🐦 Oiseaux qui **battent des ailes** en traversant le ciel
+- [ ] Météo réelle de ta ville → ferme : 🌧️ **flaques** quand il pleut, ❄️ **neige au sol** + flocons quand il neige
+- [ ] 🍂 Quelques **feuilles marron** au sol au printemps
+- [ ] ✋ **Toucher un animal** → il saute + un ❤️ s'envole
+- [ ] (⏳ Déblocages « couple » — série/jours/anniversaire — PAS encore codés)
+
 ---
 
 ## 5. 🍿 Ciné à deux
