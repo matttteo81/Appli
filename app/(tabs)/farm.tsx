@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,7 +18,7 @@ import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useAuth } from '../../src/store/auth';
 import { supabase } from '../../src/lib/supabase';
 import type { Farm, FarmResident } from '../../src/types/db';
-import { ADULT_AT, HATCH_AT, seasonNow, stageForFeeds } from '../../src/lib/farmpixel';
+import { ADULT_AT, HATCH_AT, seasonNow, speciesUnlocks, stageForFeeds } from '../../src/lib/farmpixel';
 import { fetchWeather, WeatherKind } from '../../src/lib/weather';
 
 function computeNight(d = new Date()) {
@@ -42,6 +44,12 @@ export default function FarmScreen() {
   const night = override ?? autoNight;
   const [weather, setWeather] = useState<WeatherKind>('clear');
   const season = seasonNow();
+  const [unlockOpen, setUnlockOpen] = useState(false);
+  const daysTogether = couple?.together_since
+    ? Math.max(0, Math.floor((Date.now() - new Date(couple.together_since).getTime()) / 86400000))
+    : 0;
+  const unlocks = speciesUnlocks(couple?.streak_count ?? 0, daysTogether);
+  const unlockedCount = unlocks.filter((u) => u.unlocked).length;
 
   const reload = useCallback(async () => {
     if (!couple) return;
@@ -187,9 +195,14 @@ export default function FarmScreen() {
             <Text style={styles.chipSub}>Votre ferme s'agrandit 💛</Text>
           )}
         </View>
-        <Pressable style={styles.moon} onPress={() => setOverride(override === null ? !autoNight : null)}>
-          <Text style={{ fontSize: 16 }}>{night ? '🌙' : '☀️'}</Text>
-        </Pressable>
+        <View style={{ gap: 8 }}>
+          <Pressable style={styles.moon} onPress={() => setOverride(override === null ? !autoNight : null)}>
+            <Text style={{ fontSize: 16 }}>{night ? '🌙' : '☀️'}</Text>
+          </Pressable>
+          <Pressable style={styles.moon} onPress={() => setUnlockOpen(true)}>
+            <Text style={{ fontSize: 16 }}>🏆</Text>
+          </Pressable>
+        </View>
       </View>
 
       {/* HUD bas */}
@@ -237,6 +250,29 @@ export default function FarmScreen() {
           </View>
         )}
       </View>
+
+      {/* Panneau des animaux débloqués */}
+      <Modal visible={unlockOpen} transparent animationType="fade" onRequestClose={() => setUnlockOpen(false)}>
+        <Pressable style={styles.ubackdrop} onPress={() => setUnlockOpen(false)}>
+          <View style={styles.usheet}>
+            <Text style={styles.utitle}>🏆 Vos animaux · {unlockedCount}/{unlocks.length}</Text>
+            <Text style={styles.usub}>De nouvelles espèces se débloquent en prenant soin de votre lien 💞</Text>
+            <ScrollView style={{ maxHeight: 360 }}>
+              {unlocks.map((u) => (
+                <View key={u.species} style={styles.urow}>
+                  <Text style={{ fontSize: 26, opacity: u.unlocked ? 1 : 0.3 }}>{u.emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.uname}>{u.unlocked ? u.label : '? ? ?'}</Text>
+                    <Text style={styles.ucond}>{u.unlocked ? 'Débloqué ✓' : u.condition}</Text>
+                  </View>
+                  <Text style={{ fontSize: 16 }}>{u.unlocked ? '✅' : '🔒'}</Text>
+                </View>
+              ))}
+            </ScrollView>
+            <Text style={styles.uhint}>🎂 Le jour de votre anniversaire mensuel, un nouvel œuf sans attendre !</Text>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -260,4 +296,12 @@ const styles = StyleSheet.create({
   nameInput: { backgroundColor: colors.creme, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 12, fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.encre, width: 190, borderWidth: 2, borderColor: colors.ambre },
   nameOk: { backgroundColor: colors.ambre, borderRadius: radius.md, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   nameOkTxt: { fontSize: 20, color: colors.encre },
+  ubackdrop: { flex: 1, backgroundColor: colors.overlay, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  usheet: { backgroundColor: colors.creme, borderRadius: radius.xl, padding: spacing.lg, width: '100%', maxWidth: 380 },
+  utitle: { fontFamily: fonts.displaySemiBold, fontSize: 20, color: colors.encre, textAlign: 'center' },
+  usub: { fontFamily: fonts.bodyRegular, fontSize: 13, color: colors.texteGris, textAlign: 'center', marginTop: 4, marginBottom: spacing.md },
+  urow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.bordure },
+  uname: { fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.encre },
+  ucond: { fontFamily: fonts.bodyRegular, fontSize: 12, color: colors.texteGris, marginTop: 1 },
+  uhint: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.prune, textAlign: 'center', marginTop: spacing.md },
 });

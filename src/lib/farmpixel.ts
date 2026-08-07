@@ -4,6 +4,25 @@ import type { ImageSourcePropType } from 'react-native';
 export const HATCH_AT = 6; // éclosion
 export const ADULT_AT = 30; // adulte (~15 jours à 2 nourrissages/jour)
 
+export type Unlock = {
+  species: string;
+  label: string;
+  emoji: string;
+  unlocked: boolean;
+  condition: string;
+};
+
+/** Espèces débloquées selon la série et les jours ensemble du couple. */
+export function speciesUnlocks(streak: number, daysTogether: number): Unlock[] {
+  return [
+    { species: 'hen', label: 'Poule', emoji: '🐔', unlocked: true, condition: 'Dès le début' },
+    { species: 'pig', label: 'Cochon', emoji: '🐷', unlocked: true, condition: 'Dès le début' },
+    { species: 'rabbit', label: 'Lapin', emoji: '🐰', unlocked: streak >= 7, condition: '7 jours d’affilée 🔥' },
+    { species: 'dog', label: 'Chien', emoji: '🐶', unlocked: streak >= 30, condition: '30 jours d’affilée 🔥' },
+    { species: 'cat', label: 'Chat', emoji: '🐱', unlocked: daysTogether >= 100, condition: '100 jours ensemble 💞' },
+  ];
+}
+
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
 
 /** Saison de l'hémisphère nord (France & Chine) d'après le mois. */
