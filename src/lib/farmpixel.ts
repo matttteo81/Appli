@@ -23,6 +23,16 @@ export function speciesUnlocks(streak: number, daysTogether: number): Unlock[] {
   ];
 }
 
+/** Catalogue des aliments du marchand (doit rester aligné avec batch19). */
+export type Food = { id: string; emoji: string; label: string; species: string; speciesLabel: string; price: number };
+export const FOODS: Food[] = [
+  { id: 'grain', emoji: '🌾', label: 'Graines', species: 'hen', speciesLabel: 'Poule / Poussin', price: 10 },
+  { id: 'carrot', emoji: '🥕', label: 'Carotte', species: 'rabbit', speciesLabel: 'Lapin', price: 10 },
+  { id: 'bone', emoji: '🦴', label: 'Os', species: 'dog', speciesLabel: 'Chien', price: 12 },
+  { id: 'fish', emoji: '🐟', label: 'Poisson', species: 'cat', speciesLabel: 'Chat', price: 12 },
+  { id: 'acorn', emoji: '🌰', label: 'Glands', species: 'pig', speciesLabel: 'Cochon', price: 10 },
+];
+
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
 
 /** Saison de l'hémisphère nord (France & Chine) d'après le mois. */

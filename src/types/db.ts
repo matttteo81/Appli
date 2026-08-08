@@ -162,6 +162,8 @@ export type Farm = {
   active_name: string | null;
   active_feeds: number;
   active_color: number;
+  active_fav_fed: number;
+  coins: number;
   last_grown_at: string | null;
   created_at: string;
 };
@@ -172,10 +174,17 @@ export type FarmResident = {
   species: string;
   name: string | null;
   color: number;
+  rare: boolean;
   x: number;
   y: number;
   born_at: string;
   grown_at: string;
+};
+
+export type FarmInventory = {
+  couple_id: string;
+  food_id: string;
+  qty: number;
 };
 
 export type FarmAnimal = {
@@ -264,6 +273,7 @@ export type Database = {
       farm_animals: TableDef<FarmAnimal>;
       farm: TableDef<Farm>;
       farm_residents: TableDef<FarmResident>;
+      farm_inventory: TableDef<FarmInventory>;
       drawing_strokes: TableDef<DrawingStroke>;
       pictionary: TableDef<Pictionary>;
       photos: TableDef<Photo>;
@@ -317,6 +327,10 @@ export type Database = {
       pf_feed: { Args: { p_couple: string }; Returns: Farm };
       pf_name: { Args: { p_couple: string; p_name: string }; Returns: Farm };
       pf_new_egg: { Args: { p_couple: string }; Returns: Farm };
+      pf_daily_login: { Args: { p_couple: string }; Returns: Farm };
+      pf_market_open: { Args: { p_couple: string }; Returns: boolean };
+      pf_buy_food: { Args: { p_couple: string; p_food: string }; Returns: Farm };
+      pf_give_food: { Args: { p_couple: string; p_food: string }; Returns: Farm };
       create_couple: {
         Args: Record<string, never>;
         Returns: Couple;

@@ -87,6 +87,14 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
 - [ ] Espèces débloquées par la série 🔥 (lapin 7j, chien 30j) et les jours
       ensemble (chat 100j) → SQL `batch18` ; les œufs tirent parmi les débloquées
 
+### 🧺 Le marchand ambulant (NOUVEAU — SQL `batch19`)
+- [ ] 🪙 Pièces : **+1** à la connexion (1×/j/pers.) + **+2** en nourrissant (compteur en haut à gauche)
+- [ ] 📅 **Jour de marché** ~2×/semaine (mêmes jours pour vous deux) : gros **pop-up 3 s** à l'arrivée + bouton 🧺 en bas à droite
+- [ ] 🛒 **Boutique** : acheter l'aliment de chaque espèce (jours de marché only)
+- [ ] 🎒 **Sac** : donner un aliment → **cœurs qui s'envolent** 💗
+- [ ] Le plat préféré est **requis pour passer adulte** ; donné 2× → animal **⭐ rare** (visible au carnet 📅)
+- [ ] Inventaire + pièces **partagés** et synchronisés entre les 2 téléphones
+
 ---
 
 ## 5. 🍿 Ciné à deux

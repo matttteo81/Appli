@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Easing,
   Modal,
   Pressable,
   ScrollView,
@@ -17,8 +19,8 @@ import { colors } from '../../src/theme/colors';
 import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useAuth } from '../../src/store/auth';
 import { supabase } from '../../src/lib/supabase';
-import type { Farm, FarmResident } from '../../src/types/db';
-import { ADULT_AT, HATCH_AT, seasonNow, SPECIES_NAMES, stageForFeeds } from '../../src/lib/farmpixel';
+import type { Farm, FarmInventory, FarmResident } from '../../src/types/db';
+import { ADULT_AT, FOODS, HATCH_AT, seasonNow, SPECIES_NAMES, stageForFeeds } from '../../src/lib/farmpixel';
 import { fetchWeather, WeatherKind } from '../../src/lib/weather';
 
 function computeNight(d = new Date()) {
@@ -42,6 +44,28 @@ function frAge(iso: string) {
   const y = Math.floor(days / 365); return `${y} an${y > 1 ? 's' : ''}`;
 }
 
+/** Cœurs qui s'envolent quand on offre un régal à un animal. */
+function Celebration() {
+  const v = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(v, { toValue: 1, duration: 1300, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
+  }, [v]);
+  const emojis = ['❤️', '💗', '✨', '💛', '🥰', '💕'];
+  return (
+    <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+      {emojis.map((e, i) => {
+        const ty = v.interpolate({ inputRange: [0, 1], outputRange: [0, -150 - i * 12] });
+        const op = v.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0, 1, 0] });
+        return (
+          <Animated.Text key={i} style={{ position: 'absolute', left: `${28 + i * 8}%`, top: '56%', fontSize: 30, opacity: op, transform: [{ translateY: ty }] }}>
+            {e}
+          </Animated.Text>
+        );
+      })}
+    </View>
+  );
+}
+
 export default function FarmScreen() {
   const couple = useAuth((s) => s.couple);
   const profile = useAuth((s) => s.profile);
@@ -58,6 +82,21 @@ export default function FarmScreen() {
   const [weather, setWeather] = useState<WeatherKind>('clear');
   const season = seasonNow();
   const [registryOpen, setRegistryOpen] = useState(false);
+  const [marketOpen, setMarketOpen] = useState(false);
+  const [marketPopup, setMarketPopup] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
+  const [shopTab, setShopTab] = useState<'buy' | 'bag'>('buy');
+  const [inventory, setInventory] = useState<Record<string, number>>({});
+  const [celebrate, setCelebrate] = useState(0); // incrémenté pour relancer l'animation
+  const coins = farm?.coins ?? 0;
+
+  const loadInventory = useCallback(async () => {
+    if (!couple) return;
+    const { data } = await supabase.from('farm_inventory').select('*').eq('couple_id', couple.id);
+    const inv: Record<string, number> = {};
+    (data as FarmInventory[] | null)?.forEach((r) => { if (r.qty > 0) inv[r.food_id] = r.qty; });
+    setInventory(inv);
+  }, [couple]);
 
   const reload = useCallback(async () => {
     if (!couple) return;
@@ -83,17 +122,23 @@ export default function FarmScreen() {
     if (!couple) return;
     (async () => {
       await supabase.rpc('pf_ensure', { p_couple: couple.id });
+      await supabase.rpc('pf_daily_login', { p_couple: couple.id }); // +1 pièce/jour
+      const { data: open } = await supabase.rpc('pf_market_open', { p_couple: couple.id });
+      setMarketOpen(!!open);
+      if (open) { setMarketPopup(true); setTimeout(() => setMarketPopup(false), 3000); }
       await reload();
       await loadFedToday();
+      await loadInventory();
       setLoading(false);
     })();
     const channel = supabase
       .channel(`farm2-${couple.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'farm', filter: `couple_id=eq.${couple.id}` }, () => reload())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'farm_residents', filter: `couple_id=eq.${couple.id}` }, () => reload())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'farm_inventory', filter: `couple_id=eq.${couple.id}` }, () => loadInventory())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [couple, reload, loadFedToday]);
+  }, [couple, reload, loadFedToday, loadInventory]);
 
   // Jour/nuit auto (rafraîchi chaque minute).
   useEffect(() => {
@@ -169,6 +214,40 @@ export default function FarmScreen() {
     }
   };
 
+  const onBuy = async (foodId: string) => {
+    if (!couple || busy) return;
+    setBusy(true);
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const { error } = await supabase.rpc('pf_buy_food', { p_couple: couple.id, p_food: foodId });
+      if (error) throw error;
+      await reload();
+      await loadInventory();
+    } catch (e: any) {
+      Alert.alert('Oups', e?.message ?? 'Achat impossible.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onGive = async (foodId: string) => {
+    if (!couple || busy) return;
+    setBusy(true);
+    try {
+      const { error } = await supabase.rpc('pf_give_food', { p_couple: couple.id, p_food: foodId });
+      if (error) throw error;
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShopOpen(false);
+      setCelebrate((c) => c + 1); // déclenche l'animation de régal
+      await reload();
+      await loadInventory();
+    } catch (e: any) {
+      Alert.alert('Hmm', e?.message ?? "Impossible de donner cet aliment.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   // Cooldown avant nouvel œuf
   const cooldownLeft = (() => {
     if (!farm?.last_grown_at) return 0;
@@ -192,7 +271,9 @@ export default function FarmScreen() {
 
       {/* HUD haut */}
       <View style={styles.top} pointerEvents="box-none">
-        <View style={styles.chip}>
+        <View style={{ gap: 8, alignItems: 'flex-start' }}>
+          <View style={styles.coinPill}><Text style={styles.coinTxt}>🪙 {coins}</Text></View>
+          <View style={styles.chip}>
           <Text style={styles.chipStage}>{stage ? stage.label : `🏡 ${residents.length} animal${residents.length > 1 ? 'x' : ''}`}</Text>
           {stage ? (
             <>
@@ -202,6 +283,7 @@ export default function FarmScreen() {
           ) : (
             <Text style={styles.chipSub}>Votre ferme s'agrandit 💛</Text>
           )}
+          </View>
         </View>
         <View style={{ gap: 8 }}>
           <Pressable style={styles.moon} onPress={() => setOverride(override === null ? !autoNight : null)}>
@@ -259,6 +341,82 @@ export default function FarmScreen() {
         )}
       </View>
 
+      {/* Bouton « Jour de marché » (bas droite, jours de marché uniquement) */}
+      {marketOpen ? (
+        <Pressable style={styles.market} onPress={() => { setShopTab('buy'); setShopOpen(true); }}>
+          <Text style={styles.marketLbl}>Jour de marché</Text>
+          <View style={styles.marketBtn}><Text style={{ fontSize: 26 }}>🧺</Text></View>
+        </Pressable>
+      ) : null}
+
+      {/* Gros pop-up « Jour de marché » (3 s à l'arrivée) */}
+      {marketPopup ? (
+        <View style={styles.popupWrap} pointerEvents="none">
+          <View style={styles.popup}>
+            <Text style={{ fontSize: 44 }}>🧺</Text>
+            <Text style={styles.popupTxt}>Jour de marché !</Text>
+            <Text style={styles.popupSub}>Le marchand est passé 💛</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {/* Régal : cœurs qui s'envolent */}
+      {celebrate > 0 ? <Celebration key={celebrate} /> : null}
+
+      {/* Boutique / Sac */}
+      <Modal visible={shopOpen} transparent animationType="slide" onRequestClose={() => setShopOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setShopOpen(false)} />
+        <View style={styles.shopSheet}>
+          <View style={styles.shopHead}>
+            <Text style={styles.utitle}>🧺 Le marchand</Text>
+            <View style={styles.coinPill}><Text style={styles.coinTxt}>🪙 {coins}</Text></View>
+          </View>
+          <View style={styles.tabs}>
+            <Pressable onPress={() => setShopTab('buy')} style={[styles.tab, shopTab === 'buy' && styles.tabOn]}>
+              <Text style={[styles.tabTxt, shopTab === 'buy' && styles.tabTxtOn]}>Boutique</Text>
+            </Pressable>
+            <Pressable onPress={() => setShopTab('bag')} style={[styles.tab, shopTab === 'bag' && styles.tabOn]}>
+              <Text style={[styles.tabTxt, shopTab === 'bag' && styles.tabTxtOn]}>Mon sac</Text>
+            </Pressable>
+          </View>
+          <ScrollView style={{ maxHeight: 340 }}>
+            {shopTab === 'buy' ? (
+              FOODS.map((f) => (
+                <View key={f.id} style={styles.foodRow}>
+                  <Text style={{ fontSize: 24, width: 32 }}>{f.emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.uname}>{f.label}</Text>
+                    <Text style={styles.ucond}>Pour : {f.speciesLabel}</Text>
+                  </View>
+                  <Pressable onPress={() => onBuy(f.id)} disabled={busy || coins < f.price} style={[styles.buyBtn, (busy || coins < f.price) && { opacity: 0.4 }]}>
+                    <Text style={styles.buyTxt}>{f.price} 🪙</Text>
+                  </Pressable>
+                </View>
+              ))
+            ) : Object.keys(inventory).length === 0 ? (
+              <Text style={[styles.ucond, { textAlign: 'center', paddingVertical: spacing.lg }]}>
+                Ton sac est vide — passe à la boutique 🛒
+              </Text>
+            ) : (
+              FOODS.filter((f) => inventory[f.id]).map((f) => (
+                <View key={f.id} style={styles.foodRow}>
+                  <Text style={{ fontSize: 24, width: 32 }}>{f.emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.uname}>{f.label}</Text>
+                    <Text style={styles.ucond}>Pour : {f.speciesLabel}</Text>
+                  </View>
+                  <Text style={styles.qty}>x{inventory[f.id]}</Text>
+                  <Pressable onPress={() => onGive(f.id)} disabled={busy} style={[styles.giveBtn, busy && { opacity: 0.4 }]}>
+                    <Text style={styles.buyTxt}>Donner</Text>
+                  </Pressable>
+                </View>
+              ))
+            )}
+          </ScrollView>
+          <Text style={styles.uhint}>Donner son plat préféré à un animal le rend heureux 💗 (et fait grandir l'œuf en cours).</Text>
+        </View>
+      </Modal>
+
       {/* Carnet des animaux */}
       <Modal visible={registryOpen} transparent animationType="fade" onRequestClose={() => setRegistryOpen(false)}>
         <Pressable style={styles.ubackdrop} onPress={() => setRegistryOpen(false)}>
@@ -284,7 +442,7 @@ export default function FarmScreen() {
                   <View key={r.id} style={styles.urow}>
                     <Text style={{ fontSize: 26 }}>{SP_EMOJI[r.species] || '🐾'}</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.uname}>{r.name || SPECIES_NAMES[r.species] || 'Petit'}</Text>
+                      <Text style={styles.uname}>{r.name || SPECIES_NAMES[r.species] || 'Petit'}{r.rare ? ' ⭐' : ''}</Text>
                       <Text style={styles.ucond}>Né(e) le {frDate2(r.born_at)} · {frAge(r.born_at)}</Text>
                     </View>
                   </View>
@@ -325,4 +483,26 @@ const styles = StyleSheet.create({
   uname: { fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.encre },
   ucond: { fontFamily: fonts.bodyRegular, fontSize: 12, color: colors.texteGris, marginTop: 1 },
   uhint: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.prune, textAlign: 'center', marginTop: spacing.md },
+  coinPill: { backgroundColor: 'rgba(31,27,58,0.82)', borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: colors.ambre },
+  coinTxt: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.creme },
+  market: { position: 'absolute', right: 16, bottom: 150, alignItems: 'center', gap: 4 },
+  marketLbl: { backgroundColor: colors.ambre, color: colors.encre, fontFamily: fonts.bodyBold, fontSize: 11, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, overflow: 'hidden' },
+  marketBtn: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(31,27,58,0.9)', borderWidth: 2, borderColor: colors.ambre, alignItems: 'center', justifyContent: 'center' },
+  popupWrap: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  popup: { backgroundColor: 'rgba(31,27,58,0.92)', borderRadius: radius.xl, paddingVertical: spacing.xl, paddingHorizontal: spacing.xxl, alignItems: 'center', borderWidth: 2, borderColor: colors.ambre },
+  popupTxt: { fontFamily: fonts.displaySemiBold, fontSize: 26, color: colors.creme, marginTop: 6 },
+  popupSub: { fontFamily: fonts.bodyMedium, fontSize: 14, color: colors.cremeDoux, marginTop: 2 },
+  backdrop: { flex: 1, backgroundColor: colors.overlay },
+  shopSheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: colors.creme, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg, paddingBottom: spacing.xxl },
+  shopHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
+  tabs: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  tab: { flex: 1, paddingVertical: 10, borderRadius: radius.pill, alignItems: 'center', backgroundColor: colors.cremeDoux },
+  tabOn: { backgroundColor: colors.prune },
+  tabTxt: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.texteGris },
+  tabTxtOn: { color: colors.creme },
+  foodRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.bordure },
+  buyBtn: { backgroundColor: colors.sauge, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 7 },
+  giveBtn: { backgroundColor: colors.corail, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 7 },
+  buyTxt: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.encre },
+  qty: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.prune, marginHorizontal: 6 },
 });
