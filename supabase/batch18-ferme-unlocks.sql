@@ -6,8 +6,6 @@
 --   • série ≥ 7 jours 🔥      → lapin 🐰
 --   • série ≥ 30 jours 🔥     → chien 🐶
 --   • 100 jours ensemble 💞   → chat 🐱
--- Bonus : le jour de votre anniversaire mensuel (même quantième que la date
--- de mise en couple), le délai avant un nouvel œuf est levé.
 --
 -- À coller dans Supabase → SQL Editor → Run.
 -- =====================================================================
@@ -43,24 +41,15 @@ begin
   return f;
 end; $$;
 
--- pf_new_egg : nouvel œuf dans le pool débloqué, délai levé le jour de l'anniversaire.
+-- pf_new_egg : nouvel œuf dans le pool débloqué (repos de 2 jours après un adulte).
 create or replace function public.pf_new_egg(p_couple uuid)
 returns public.farm language plpgsql security definer set search_path = public as $$
-declare
-  f public.farm;
-  c public.couples;
-  is_anniv boolean := false;
+declare f public.farm;
 begin
   if p_couple is distinct from public.current_couple_id() then raise exception 'Pas ton couple.'; end if;
   select * into f from public.farm where couple_id = p_couple;
   if f.active_species is not null then raise exception 'Un animal est déjà en cours d''élevage.'; end if;
-  select * into c from public.couples where id = p_couple;
-  if c.together_since is not null
-     and extract(day from c.together_since) = extract(day from current_date) then
-    is_anniv := true;
-  end if;
-  if f.last_grown_at is not null and not is_anniv
-     and now() - f.last_grown_at < interval '2 days' then
+  if f.last_grown_at is not null and now() - f.last_grown_at < interval '2 days' then
     raise exception 'Encore un peu de repos avant un nouvel œuf 🥚';
   end if;
   update public.farm set active_species = public._pf_species(p_couple), active_name = null,

@@ -18,7 +18,7 @@ import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useAuth } from '../../src/store/auth';
 import { supabase } from '../../src/lib/supabase';
 import type { Farm, FarmResident } from '../../src/types/db';
-import { ADULT_AT, HATCH_AT, seasonNow, speciesUnlocks, stageForFeeds } from '../../src/lib/farmpixel';
+import { ADULT_AT, HATCH_AT, seasonNow, SPECIES_NAMES, stageForFeeds } from '../../src/lib/farmpixel';
 import { fetchWeather, WeatherKind } from '../../src/lib/weather';
 
 function computeNight(d = new Date()) {
@@ -27,6 +27,19 @@ function computeNight(d = new Date()) {
 }
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
+}
+const SP_EMOJI: Record<string, string> = { hen: '🐔', cat: '🐱', dog: '🐶', rabbit: '🐰', pig: '🐷' };
+function frDate2(iso: string) {
+  return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+function frAge(iso: string) {
+  const days = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
+  if (days === 0) return 'né aujourd’hui';
+  if (days === 1) return '1 jour';
+  if (days < 7) return `${days} jours`;
+  if (days < 30) { const w = Math.floor(days / 7); return `${w} semaine${w > 1 ? 's' : ''}`; }
+  if (days < 365) { const m = Math.floor(days / 30); return `${m} mois`; }
+  const y = Math.floor(days / 365); return `${y} an${y > 1 ? 's' : ''}`;
 }
 
 export default function FarmScreen() {
@@ -44,12 +57,7 @@ export default function FarmScreen() {
   const night = override ?? autoNight;
   const [weather, setWeather] = useState<WeatherKind>('clear');
   const season = seasonNow();
-  const [unlockOpen, setUnlockOpen] = useState(false);
-  const daysTogether = couple?.together_since
-    ? Math.max(0, Math.floor((Date.now() - new Date(couple.together_since).getTime()) / 86400000))
-    : 0;
-  const unlocks = speciesUnlocks(couple?.streak_count ?? 0, daysTogether);
-  const unlockedCount = unlocks.filter((u) => u.unlocked).length;
+  const [registryOpen, setRegistryOpen] = useState(false);
 
   const reload = useCallback(async () => {
     if (!couple) return;
@@ -199,8 +207,8 @@ export default function FarmScreen() {
           <Pressable style={styles.moon} onPress={() => setOverride(override === null ? !autoNight : null)}>
             <Text style={{ fontSize: 16 }}>{night ? '🌙' : '☀️'}</Text>
           </Pressable>
-          <Pressable style={styles.moon} onPress={() => setUnlockOpen(true)}>
-            <Text style={{ fontSize: 16 }}>🏆</Text>
+          <Pressable style={styles.moon} onPress={() => setRegistryOpen(true)}>
+            <Text style={{ fontSize: 16 }}>📅</Text>
           </Pressable>
         </View>
       </View>
@@ -251,25 +259,38 @@ export default function FarmScreen() {
         )}
       </View>
 
-      {/* Panneau des animaux débloqués */}
-      <Modal visible={unlockOpen} transparent animationType="fade" onRequestClose={() => setUnlockOpen(false)}>
-        <Pressable style={styles.ubackdrop} onPress={() => setUnlockOpen(false)}>
+      {/* Carnet des animaux */}
+      <Modal visible={registryOpen} transparent animationType="fade" onRequestClose={() => setRegistryOpen(false)}>
+        <Pressable style={styles.ubackdrop} onPress={() => setRegistryOpen(false)}>
           <View style={styles.usheet}>
-            <Text style={styles.utitle}>🏆 Vos animaux · {unlockedCount}/{unlocks.length}</Text>
-            <Text style={styles.usub}>De nouvelles espèces se débloquent en prenant soin de votre lien 💞</Text>
-            <ScrollView style={{ maxHeight: 360 }}>
-              {unlocks.map((u) => (
-                <View key={u.species} style={styles.urow}>
-                  <Text style={{ fontSize: 26, opacity: u.unlocked ? 1 : 0.3 }}>{u.emoji}</Text>
+            <Text style={styles.utitle}>📅 Nos animaux · {residents.length}</Text>
+            <Text style={styles.usub}>Chaque compagnon, son prénom, sa naissance et son âge</Text>
+            <ScrollView style={{ maxHeight: 380 }}>
+              {active ? (
+                <View style={styles.urow}>
+                  <Text style={{ fontSize: 26 }}>🥚</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.uname}>{u.unlocked ? u.label : '? ? ?'}</Text>
-                    <Text style={styles.ucond}>{u.unlocked ? 'Débloqué ✓' : u.condition}</Text>
+                    <Text style={styles.uname}>{active.name || 'En cours…'}</Text>
+                    <Text style={styles.ucond}>En train de grandir 🌱</Text>
                   </View>
-                  <Text style={{ fontSize: 16 }}>{u.unlocked ? '✅' : '🔒'}</Text>
                 </View>
-              ))}
+              ) : null}
+              {residents.length === 0 && !active ? (
+                <Text style={[styles.ucond, { textAlign: 'center', paddingVertical: spacing.lg }]}>
+                  Pas encore d'animal — nourrissez votre premier œuf 🥚
+                </Text>
+              ) : (
+                residents.map((r) => (
+                  <View key={r.id} style={styles.urow}>
+                    <Text style={{ fontSize: 26 }}>{SP_EMOJI[r.species] || '🐾'}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.uname}>{r.name || SPECIES_NAMES[r.species] || 'Petit'}</Text>
+                      <Text style={styles.ucond}>Né(e) le {frDate2(r.born_at)} · {frAge(r.born_at)}</Text>
+                    </View>
+                  </View>
+                ))
+              )}
             </ScrollView>
-            <Text style={styles.uhint}>🎂 Le jour de votre anniversaire mensuel, un nouvel œuf sans attendre !</Text>
           </View>
         </Pressable>
       </Modal>

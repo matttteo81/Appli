@@ -82,10 +82,10 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
 - [ ] Météo réelle de ta ville → ferme : 🌧️ **flaques** quand il pleut, ❄️ **neige au sol** + flocons quand il neige
 - [ ] 🍂 Quelques **feuilles marron** au sol au printemps
 - [ ] ✋ **Toucher un animal** → il saute + un ❤️ s'envole
-- [ ] 🏆 **Déblocages couple** (bouton trophée) : espèces débloquées par la série 🔥
-      (lapin 7j, chien 30j) et les jours ensemble (chat 100j) → SQL `batch18`
-- [ ] Les œufs tirent au hasard **parmi les espèces débloquées**
-- [ ] 🎂 Anniversaire mensuel → nouvel œuf sans attendre le délai
+- [ ] 📅 **Carnet des animaux** (bouton calendrier) : liste chaque animal avec
+      prénom, date de naissance et âge (+ l'œuf en cours)
+- [ ] Espèces débloquées par la série 🔥 (lapin 7j, chien 30j) et les jours
+      ensemble (chat 100j) → SQL `batch18` ; les œufs tirent parmi les débloquées
 
 ---
 
