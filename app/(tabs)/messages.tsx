@@ -33,6 +33,7 @@ import type { Message } from '../../src/types/db';
 import { BUILTIN_GIFS, gifSource } from '../../src/lib/gifs';
 import { detectLang, readerLang, translateText } from '../../src/lib/translate';
 import { MessagesSkeleton } from '../../src/components/Skeleton';
+import { scheduleMissYouReminder } from '../../src/lib/missYouReminder';
 
 const MSG_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
 
@@ -60,6 +61,7 @@ export default function Messages() {
   const { rows, loading } = useCoupleTable<Message>('messages', 'created_at', false);
   const couple = useAuth((s) => s.couple);
   const profile = useAuth((s) => s.profile);
+  const partner = useAuth((s) => s.partner);
   const [text, setText] = useState('');
   const [gifOpen, setGifOpen] = useState(false);
   const [tab, setTab] = useState<'gifs' | 'create'>('gifs');
@@ -80,6 +82,13 @@ export default function Messages() {
   }, [rows]);
 
   const display = React.useMemo(() => [...pending.filter((t) => !matched(t)), ...rows], [pending, rows]);
+
+  // Rappel doux « ça fait 2 jours » : reprogrammé selon le dernier message.
+  useEffect(() => {
+    if (loading) return;
+    const last = rows[0]?.created_at ? new Date(rows[0].created_at) : null;
+    scheduleMissYouReminder(last, partner?.display_name);
+  }, [rows, loading, partner?.display_name]);
 
   // Traduction : langue de lecture (appareil) + état par message.
   const reader = React.useMemo(() => readerLang(), []);

@@ -13,13 +13,21 @@ export async function syncEventReminders(events: CoupleEvent[]) {
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') return;
 
-    await Notifications.cancelAllScheduledNotificationsAsync();
+    // On n'efface QUE nos rappels d'événements (préfixe « event- »), pour ne
+    // pas supprimer les autres notifications locales (ex. « on ne s'est pas parlé »).
+    const all = await Notifications.getAllScheduledNotificationsAsync();
+    await Promise.all(
+      all
+        .filter((n) => String(n.identifier).startsWith('event-'))
+        .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)),
+    );
 
     const now = Date.now();
     for (const e of events) {
       const when = eventReminderDate(e);
       if (!when || when.getTime() <= now) continue;
       await Notifications.scheduleNotificationAsync({
+        identifier: 'event-' + e.id,
         content: {
           title: `${e.emoji} ${e.title}`,
           body: e.event_time ? `C'est à ${e.event_time} 💛` : "C'est aujourd'hui 💛",
