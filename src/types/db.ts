@@ -57,6 +57,7 @@ export type Profile = {
   city_name: string | null;
   city_lat: number | null;
   city_lng: number | null;
+  auto_location: boolean;
   timezone: string | null;
   push_token: string | null;
   mood_emoji: string | null;

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { decode } from 'base64-arraybuffer';
 import { Screen, ThemedText } from '../src/components/ui';
 import { colors } from '../src/theme/colors';
@@ -17,6 +18,7 @@ import { radius, spacing } from '../src/theme/typography';
 import { useAuth } from '../src/store/auth';
 import { useLock } from '../src/store/lock';
 import { supabase } from '../src/lib/supabase';
+import { refreshMyLocation } from '../src/lib/autoLocation';
 
 function Row({
   title,
@@ -58,10 +60,36 @@ export default function Parametres() {
   const router = useRouter();
   const couple = useAuth((s) => s.couple);
   const updateCouple = useAuth((s) => s.updateCouple);
+  const profile = useAuth((s) => s.profile);
+  const updateProfile = useAuth((s) => s.updateProfile);
   const signOut = useAuth((s) => s.signOut);
   const deleteAccount = useAuth((s) => s.deleteAccount);
   const lockEnabled = useLock((s) => s.enabled);
   const setLockEnabled = useLock((s) => s.setEnabled);
+
+  const autoLocation = profile?.auto_location !== false;
+  const toggleAutoLocation = async (value: boolean) => {
+    if (value) {
+      // Activer : on demande la permission de localisation.
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert(
+          'Localisation refusée',
+          'Autorise la localisation dans les réglages du téléphone pour activer la position automatique.',
+        );
+        return;
+      }
+    }
+    try {
+      await updateProfile({ auto_location: value });
+      if (value && profile) {
+        // Mise à jour immédiate de la position.
+        await refreshMyLocation({ ...profile, auto_location: true }, updateProfile);
+      }
+    } catch {
+      Alert.alert('Oups', "Le réglage n'a pas pu être enregistré.");
+    }
+  };
 
   const [uploadingBg, setUploadingBg] = useState(false);
   const [uploadingTogether, setUploadingTogether] = useState(false);
@@ -189,6 +217,24 @@ export default function Parametres() {
               title="Verrouiller avec Face ID"
               subtitle="Demande Face ID à l’ouverture de Fil"
               right={<Switch value={lockEnabled} onValueChange={toggleLock} trackColor={{ true: colors.sauge }} />}
+            />
+          </View>
+        </View>
+
+        {/* Localisation */}
+        <View>
+          <ThemedText variant="label" color={colors.texteGris} style={styles.section}>LOCALISATION</ThemedText>
+          <View style={styles.group}>
+            <Row
+              title="Position automatique"
+              subtitle="Met à jour ta position exacte à l’ouverture — si tu changes de ville, ça suit tout seul"
+              right={
+                <Switch
+                  value={autoLocation}
+                  onValueChange={toggleAutoLocation}
+                  trackColor={{ true: colors.sauge }}
+                />
+              }
             />
           </View>
         </View>

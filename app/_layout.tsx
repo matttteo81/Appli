@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { useFonts } from 'expo-font';
 import {
@@ -33,6 +33,7 @@ import { Onboarding } from '../src/components/Onboarding';
 import { AnimatedSplash } from '../src/components/AnimatedSplash';
 import { supabase } from '../src/lib/supabase';
 import { registerForPushNotifications } from '../src/lib/notifications';
+import { refreshMyLocation } from '../src/lib/autoLocation';
 import { colors } from '../src/theme/colors';
 
 export default function RootLayout() {
@@ -80,6 +81,7 @@ export default function RootLayout() {
         <StatusBar style="auto" />
         <AuthGate />
         <NotificationBridge />
+        <LocationBridge />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="pair" />
@@ -158,6 +160,34 @@ function AuthGate() {
       router.replace('/(tabs)');
     }
   }, [session, profile, segments, router]);
+
+  return null;
+}
+
+/**
+ * Met à jour la position exacte au démarrage et à chaque retour au premier
+ * plan, si la personne a activé la position automatique (et autorisé la
+ * localisation). Ainsi, changer de ville met tout à jour tout seul.
+ */
+function LocationBridge() {
+  const profileId = useAuth((s) => s.profile?.id);
+  const autoOn = useAuth((s) => s.profile?.auto_location);
+  const updateProfile = useAuth((s) => s.updateProfile);
+
+  useEffect(() => {
+    if (!profileId || autoOn === false) return;
+
+    const run = () => {
+      const p = useAuth.getState().profile;
+      if (p && p.auto_location !== false) refreshMyLocation(p, updateProfile);
+    };
+
+    run(); // au démarrage
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') run();
+    });
+    return () => sub.remove();
+  }, [profileId, autoOn, updateProfile]);
 
   return null;
 }
