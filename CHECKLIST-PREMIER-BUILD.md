@@ -199,6 +199,16 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
 - [x] **URL publique** de la politique (pour les stores) :
       https://classy-lollipop-8f7a84.netlify.app ✅
 
+## 14. ✨ Confort & fluidité (NOUVEAU)
+
+- [ ] 🌅 Accueil : « Bonjour, [prénom] » selon l'heure + **mot doux du jour**
+- [ ] 🔔 **Toasts** discrets (ex. « Code copié 💛 ») au lieu de pop-ups
+- [ ] 💀 **Skeletons** au chargement des messages
+- [ ] ⚡ **Messages instantanés** (s'affichent avant la confirmation serveur) + haptique
+- [ ] ⤵️ **Pull-to-refresh** sur album, journal et liste « à faire »
+- [ ] 🔔 **Rappel « 2 jours sans se parler »** (local ; autoriser les notifs ; se
+      reprogramme à chaque message ; cohabite avec les rappels agenda)
+
 ## 11. ⚠️ Points de vigilance
 
 - [ ] **Autoriser les notifications** au 1er lancement (sinon rappels agenda/notes
