@@ -235,6 +235,9 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
       Apple Maps. ⚠️ l'app ne s'installera plus sur iOS 15/16.
 - [x] **Widgets iOS** (`@bacons/apple-targets`) — 2 widgets texte préparés
       (voir section 12).
+- [x] **Écran de démarrage Lottie** (`lottie-react-native`) — l'avion en papier
+      qui trace un cœur + titre « Fil ». (Natif → visible au build.)
+- [x] **Bandeau hors-ligne** (`@react-native-community/netinfo`) — natif.
 
 ## 12. 📱 Widgets iOS (NOUVEAU — natif)
 
