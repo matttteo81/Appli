@@ -10,9 +10,9 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fil.couple",
+      "bundleIdentifier": "com.app.fil",
       "entitlements": {
-        "com.apple.security.application-groups": ["group.com.fil.couple.widgets"]
+        "com.apple.security.application-groups": ["group.com.app.fil.widgets"]
       },
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Fil a besoin d'accéder à tes photos pour les ajouter à votre album partagé.",
@@ -21,7 +21,7 @@
       }
     },
     "android": {
-      "package": "com.fil.couple",
+      "package": "com.app.fil",
       "adaptiveIcon": {
         "backgroundColor": "#1B1B3A",
         "foregroundImage": "./assets/android-icon-foreground.png",

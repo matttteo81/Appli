@@ -226,7 +226,7 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
       visible sur la page « Membership » du compte développeur de ton ami). Sans lui,
       la signature du widget peut faire échouer le build.
 - [ ] **App Group** : à la 1re compilation, EAS doit enregistrer
-      `group.com.fil.couple.widgets` sur le compte Apple (normalement automatique
+      `group.com.app.fil.widgets` sur le compte Apple (normalement automatique
       avec les identifiants gérés par EAS — à surveiller).
 
 ### À tester une fois installé

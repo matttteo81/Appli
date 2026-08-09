@@ -10,7 +10,7 @@ module.exports = (config) => ({
   },
   entitlements: {
     'com.apple.security.application-groups': [
-      'group.com.fil.couple.widgets',
+      'group.com.app.fil.widgets',
     ],
   },
 });

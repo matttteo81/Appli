@@ -1,11 +1,11 @@
 # 🍎 Bascule vers ton propre compte Apple Developer
 
-Guide à suivre **le jour où tu as créé ton compte**. Objectif : passer du compte
-de ton ami à **ton compte**, en gardant le nom `com.fil.couple`, sans rien perdre
-de tes données (elles sont dans Supabase, pas chez Apple).
+Guide à suivre **le jour où tu as créé ton compte**. Objectif : passer sur **ton
+compte**, sans rien perdre de tes données (elles sont dans Supabase, pas chez Apple).
 
-> Option retenue : **A — repartir à neuf** sous ton compte (le plus simple, vu
-> qu'on est encore en phase de test). Bundle ID conservé : **`com.fil.couple`**.
+> Option retenue : **A — repartir à neuf** sous ton compte. Nouveau bundle ID :
+> **`com.app.fil`** (l'ancien `com.fil.couple` est resté verrouillé sur le compte
+> de l'ami — Apple ne permet pas de le réutiliser ; c'est déjà géré dans le code).
 
 ---
 
@@ -15,16 +15,12 @@ de tes données (elles sont dans Supabase, pas chez Apple).
   → https://developer.apple.com/programs/
 - (Ce n'est PAS un « compte créateur » : pour publier une app, c'est ce programme-là.)
 
-## Étape 1 — Ton ami libère le nom `com.fil.couple`
+## Étape 1 — Le nom technique (déjà réglé ✅)
 
-Un bundle ID est unique dans tout Apple. Pour le réutiliser à l'identique, sur le
-compte de ton ami :
-1. App Store Connect → supprimer l'app de test « Fil ».
-2. developer.apple.com → **Certificates, IDs & Profiles** → **Identifiers** →
-   supprimer `com.fil.couple`.
-
-> Si Apple refuse la suppression (rare) : on bascule sur un nouveau nom
-> `com.<tonprenom>.fil` — 2 lignes à changer, invisible à l'usage.
+L'ancien `com.fil.couple` est resté verrouillé sur le compte de l'ami (Apple ne
+libère pas un identifiant déjà utilisé). On est donc passé à **`com.app.fil`**,
+déjà appliqué partout dans le code. **Rien à faire de plus** — ton ami n'a plus
+aucune manip à faire.
 
 ## Étape 2 — Récupérer ton Team ID
 
@@ -33,7 +29,7 @@ compte de ton ami :
   ```json
   "ios": {
     "appleTeamId": "XXXXXXXXXX",
-    "bundleIdentifier": "com.fil.couple",
+    "bundleIdentifier": "com.app.fil",
     ...
   }
   ```
@@ -57,12 +53,12 @@ compte de ton ami :
 
 - Rien à copier à la main : au premier build sous ton compte, EAS crée
   **certificats + profils** et enregistre l'**App Group**
-  `group.com.fil.couple.widgets` + l'app ID des widgets.
+  `group.com.app.fil.widgets` + l'app ID des widgets.
 - Au besoin : `eas credentials` pour vérifier.
 
 ## Étape 5 — Créer l'app + builder + envoyer
 
-1. App Store Connect → **+ New App** → bundle ID `com.fil.couple` → récupérer son
+1. App Store Connect → **+ New App** → bundle ID `com.app.fil` → récupérer son
    **ascAppId** (à mettre dans `eas.json`, étape 3).
 2. Build : `eas build -p ios --profile production`
 3. Envoi TestFlight : `eas submit -p ios --profile production`
@@ -95,7 +91,7 @@ compte de ton ami :
 ## 🔖 Ce dont j'ai besoin de toi (résumé)
 1. **Team ID** (étape 2)
 2. **Clé API** : fichier `.p8` + **Key ID** + **Issuer ID** (étape 3)
-3. Confirmation que ton ami a **libéré `com.fil.couple`** (étape 1)
+3. (Le nom technique `com.app.fil` est déjà en place — plus rien côté ami)
 
 Dès que tu as ces 3 choses, je fais les mises à jour de config et on build sous
 **ton** compte, widgets signés compris.
