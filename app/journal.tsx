@@ -17,6 +17,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { gpsFromExif } from '../src/lib/exifgps';
 import { Button, EmptyState, Input, Screen, ThemedText } from '../src/components/ui';
 import { colors } from '../src/theme/colors';
 import { fonts, radius, spacing } from '../src/theme/typography';
@@ -47,7 +48,7 @@ export default function Journal() {
   const [showPicker, setShowPicker] = useState(Platform.OS === 'ios');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [photo, setPhoto] = useState<{ base64: string; ext: string } | null>(null);
+  const [photo, setPhoto] = useState<{ base64: string; ext: string; lat: number | null; lng: number | null } | null>(null);
   const [saving, setSaving] = useState(false);
   const [viewer, setViewer] = useState<string | null>(null);
 
@@ -78,10 +79,18 @@ export default function Journal() {
   const pickPhoto = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) { Alert.alert('Accès refusé', 'Autorise l’accès aux photos dans les réglages.'); return; }
-    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.6, base64: true });
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.6, base64: true, exif: true });
     if (res.canceled || !res.assets[0]?.base64) return;
-    const ext = (res.assets[0].uri.split('.').pop() || 'jpg').toLowerCase();
-    setPhoto({ base64: res.assets[0].base64!, ext: ext === 'png' ? 'png' : 'jpg' });
+    const asset = res.assets[0];
+    const ext = (asset.uri.split('.').pop() || 'jpg').toLowerCase();
+    // Lieu du souvenir : lu automatiquement dans l'EXIF de la photo.
+    const loc = gpsFromExif(asset.exif);
+    setPhoto({
+      base64: asset.base64!,
+      ext: ext === 'png' ? 'png' : 'jpg',
+      lat: loc?.lat ?? null,
+      lng: loc?.lng ?? null,
+    });
   };
 
   const save = async () => {
@@ -107,6 +116,8 @@ export default function Journal() {
         body: body.trim() || null,
         photo_path,
         memory_date: toISODate(date),
+        lat: photo?.lat ?? null,
+        lng: photo?.lng ?? null,
       });
       setOpen(false);
       reset();

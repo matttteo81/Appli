@@ -11,13 +11,14 @@ export type Pin = {
   latitude: number;
   longitude: number;
   title: string;
-  kind: 'photo' | 'me' | 'partner';
+  kind: 'photo' | 'me' | 'partner' | 'memory';
 };
 
 const STYLE_FOR: Record<Pin['kind'], { systemImage: string; tintColor: string }> = {
   photo: { systemImage: 'photo.fill', tintColor: '#EF8C7C' },
   me: { systemImage: 'heart.fill', tintColor: '#F2A65A' },
   partner: { systemImage: 'heart.fill', tintColor: '#A8C3A0' },
+  memory: { systemImage: 'book.fill', tintColor: '#7C2D3A' },
 };
 
 export default function PhotoMap({

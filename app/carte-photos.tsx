@@ -7,7 +7,7 @@ import { colors } from '../src/theme/colors';
 import { spacing } from '../src/theme/typography';
 import { useCoupleTable } from '../src/hooks/useCoupleTable';
 import { useAuth } from '../src/store/auth';
-import type { Photo } from '../src/types/db';
+import type { Photo, Memory } from '../src/types/db';
 import type { Pin } from '../src/components/PhotoMap';
 
 // Chargé à la demande : le module natif de la carte n'est touché que
@@ -37,6 +37,7 @@ export default function CartePhotos() {
   const profile = useAuth((s) => s.profile);
   const partner = useAuth((s) => s.partner);
   const { rows, loading } = useCoupleTable<Photo>('photos');
+  const { rows: memories } = useCoupleTable<Memory>('memories', 'memory_date', false);
 
   const pins = useMemo<Pin[]>(() => {
     const out: Pin[] = [];
@@ -82,8 +83,20 @@ export default function CartePhotos() {
         kind: 'photo',
       });
     }
+
+    // Souvenirs du Journal géolocalisés (📔).
+    for (const m of memories) {
+      if (m.lat == null || m.lng == null) continue;
+      out.push({
+        id: `memory-${m.id}`,
+        latitude: m.lat,
+        longitude: m.lng,
+        title: m.title?.trim() || frShort(m.memory_date),
+        kind: 'memory',
+      });
+    }
     return out;
-  }, [rows, profile, partner]);
+  }, [rows, memories, profile, partner]);
 
   const center = useMemo(() => {
     if (pins.length === 0) return { latitude: 20, longitude: 0 };
@@ -144,6 +157,7 @@ export default function CartePhotos() {
                 pins={pins}
                 onPinPress={(pin) => {
                   if (pin.kind === 'photo') router.push('/souvenirs');
+                  else if (pin.kind === 'memory') router.push('/journal');
                 }}
               />
             </Suspense>
@@ -151,7 +165,8 @@ export default function CartePhotos() {
           <View style={styles.legend}>
             <Text style={styles.legendItem}>💛 Toi</Text>
             <Text style={styles.legendItem}>💚 Ta moitié</Text>
-            <Text style={styles.legendItem}>📷 Souvenirs</Text>
+            <Text style={styles.legendItem}>📷 Photos</Text>
+            <Text style={styles.legendItem}>📔 Journal</Text>
           </View>
         </View>
       )}

@@ -84,6 +84,8 @@ export type Memory = {
   body: string | null;
   photo_path: string | null;
   memory_date: string; // YYYY-MM-DD
+  lat: number | null;
+  lng: number | null;
   created_at: string;
 };
 
