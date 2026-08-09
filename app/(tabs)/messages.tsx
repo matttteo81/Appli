@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import * as Haptics from 'expo-haptics';
 import { encode as b64encode } from 'base64-arraybuffer';
 import {
   EmptyState,
@@ -65,6 +66,20 @@ export default function Messages() {
   const [busy, setBusy] = useState(false);
   const [actionMsg, setActionMsg] = useState<Message | null>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [pending, setPending] = useState<Message[]>([]);
+
+  // Un message optimiste « correspond » à un vrai message serveur (même auteur,
+  // même texte, à quelques secondes près) → on retire alors le doublon local.
+  const matched = (t: Message) =>
+    rows.some((r) => r.author_id === t.author_id && r.body === t.body &&
+      Math.abs(new Date(r.created_at).getTime() - new Date(t.created_at).getTime()) < 20000);
+
+  useEffect(() => {
+    setPending((p) => p.filter((t) => !matched(t)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows]);
+
+  const display = React.useMemo(() => [...pending.filter((t) => !matched(t)), ...rows], [pending, rows]);
 
   // Traduction : langue de lecture (appareil) + état par message.
   const reader = React.useMemo(() => readerLang(), []);
@@ -100,12 +115,21 @@ export default function Messages() {
     setText('');
     const replyId = replyTo?.id ?? null;
     setReplyTo(null);
-    await supabase.from('messages').insert({
-      couple_id: couple.id,
-      author_id: profile.id,
-      body,
-      reply_to: replyId,
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Affichage instantané (optimiste) avant la confirmation serveur.
+    const temp: Message = {
+      id: 'temp-' + Date.now(), couple_id: couple.id, author_id: profile.id,
+      body, image_url: null, reactions: {}, reply_to: replyId, created_at: new Date().toISOString(),
+    };
+    setPending((p) => [temp, ...p]);
+    const { error } = await supabase.from('messages').insert({
+      couple_id: couple.id, author_id: profile.id, body, reply_to: replyId,
     });
+    if (error) {
+      setPending((p) => p.filter((m) => m.id !== temp.id));
+      setText(body);
+      Alert.alert('Oups', "Ton message n'a pas pu être envoyé.");
+    }
   };
 
   const react = async (message: Message, emoji: string) => {
@@ -181,9 +205,9 @@ export default function Messages() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={90}
       >
-        {loading && rows.length === 0 ? (
+        {loading && display.length === 0 ? (
           <MessagesSkeleton />
-        ) : rows.length === 0 ? (
+        ) : display.length === 0 ? (
           <View style={{ flex: 1, justifyContent: 'center' }}>
             <EmptyState
               emoji="💬"
@@ -193,7 +217,7 @@ export default function Messages() {
           </View>
         ) : (
           <FlatList
-            data={rows}
+            data={display}
             keyExtractor={(m) => m.id}
             inverted
             contentContainerStyle={{
