@@ -9,6 +9,7 @@ export const colors = {
   corail: '#EF8C7C', // Corail — accent secondaire
   creme: '#FBF6EF', // Crème nuage — fond clair
   beigeOleron: '#D8C7AC', // Beige Oléron — sable chaud (écran de démarrage)
+  grenat: '#7C2D3A', // Grenat — rouge profond intime
   sauge: '#A8C3A0', // Vert sauge — progression / succès
 
   // Nuances utilitaires dérivées

@@ -79,5 +79,5 @@ const styles = StyleSheet.create({
     color: colors.encre,
     marginTop: 8,
   },
-  tagline: { fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.prune, marginTop: 6 },
+  tagline: { fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.grenat, marginTop: 6 },
 });
