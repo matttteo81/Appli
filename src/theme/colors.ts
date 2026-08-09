@@ -8,6 +8,7 @@ export const colors = {
   ambre: '#F2A65A', // Ambre — accent principal
   corail: '#EF8C7C', // Corail — accent secondaire
   creme: '#FBF6EF', // Crème nuage — fond clair
+  beigeOleron: '#D8C7AC', // Beige Oléron — sable chaud (écran de démarrage)
   sauge: '#A8C3A0', // Vert sauge — progression / succès
 
   // Nuances utilitaires dérivées
