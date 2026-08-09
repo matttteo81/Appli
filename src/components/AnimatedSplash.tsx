@@ -26,12 +26,12 @@ export function AnimatedSplash({ onDone }: { onDone: () => void }) {
     // « FIL » arrive d'abord en fondu…
     const t1 = setTimeout(() => {
       Animated.timing(title, { toValue: 1, duration: 500, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
-    }, 1900);
+    }, 1300);
     // …puis la phrase, 1 seconde après.
     const t2 = setTimeout(() => {
       Animated.timing(tagline, { toValue: 1, duration: 500, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
-    }, 2900);
-    const safety = setTimeout(finish, 6000);
+    }, 2300);
+    const safety = setTimeout(finish, 4500);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(safety); };
   }, [title, tagline]);
 
@@ -45,7 +45,7 @@ export function AnimatedSplash({ onDone }: { onDone: () => void }) {
           source={require('../../assets/plane_heart.json')}
           autoPlay
           loop={false}
-          speed={1.3}
+          speed={1.5}
           resizeMode="contain"
           onAnimationFinish={finish}
           style={styles.lottie}
