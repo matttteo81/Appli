@@ -211,6 +211,10 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
 - [ ] 🎮 **Onglet « Activités »** regroupe Jeux, Ciné à deux, Dessin, Langages de
       l'amour, Playlist. Barre du bas allégée (Jeux/Playlist masqués → dans Activités).
       Vérifier que chaque activité s'ouvre bien depuis l'onglet.
+- [ ] 👋 **Onboarding** : 3 écrans de bienvenue au **tout premier lancement**
+      (puis plus jamais). Bouton « Passer » + « Commencer ».
+- [ ] 📵 **Bandeau hors-ligne** (natif `@react-native-community/netinfo`) : couper
+      le wifi/données → bandeau « Pas de connexion » en haut ; réapparition réseau → il disparaît.
 
 ## 11. ⚠️ Points de vigilance
 
