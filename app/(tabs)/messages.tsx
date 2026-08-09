@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Easing,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -31,6 +33,26 @@ import { BUILTIN_GIFS, gifSource } from '../../src/lib/gifs';
 import { detectLang, readerLang, translateText } from '../../src/lib/translate';
 
 const MSG_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
+
+/** Rangée de message qui « arrive » en douceur (fondu + montée + zoom). */
+function MsgRow({ mine, children }: { mine: boolean; children: React.ReactNode }) {
+  const v = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(v, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, [v]);
+  const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [14, 0] });
+  const scale = v.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] });
+  return (
+    <Animated.View
+      style={[
+        styles.bubbleRow,
+        { justifyContent: mine ? 'flex-end' : 'flex-start', opacity: v, transform: [{ translateY }, { scale }] },
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
+}
 
 export default function Messages() {
   const { rows, loading } = useCoupleTable<Message>('messages', 'created_at', false);
@@ -182,12 +204,7 @@ export default function Messages() {
               const reactionEmojis = Object.values(item.reactions ?? {});
               const repliedTo = item.reply_to ? msgById[item.reply_to] : undefined;
               return (
-                <View
-                  style={[
-                    styles.bubbleRow,
-                    { justifyContent: mine ? 'flex-end' : 'flex-start' },
-                  ]}
-                >
+                <MsgRow mine={mine}>
                   <Pressable
                     onLongPress={() => setActionMsg(item)}
                     delayLongPress={250}
@@ -264,7 +281,7 @@ export default function Messages() {
                       </View>
                     ) : null}
                   </Pressable>
-                </View>
+                </MsgRow>
               );
             }}
           />
