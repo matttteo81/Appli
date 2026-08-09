@@ -12,7 +12,8 @@ const { width: W } = Dimensions.get('window');
  */
 export function AnimatedSplash({ onDone }: { onDone: () => void }) {
   const container = useRef(new Animated.Value(1)).current;
-  const text = useRef(new Animated.Value(0)).current;
+  const title = useRef(new Animated.Value(0)).current;
+  const tagline = useRef(new Animated.Value(0)).current;
   const done = useRef(false);
 
   const finish = () => {
@@ -22,14 +23,20 @@ export function AnimatedSplash({ onDone }: { onDone: () => void }) {
   };
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      Animated.timing(text, { toValue: 1, duration: 500, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
+    // « FIL » arrive d'abord en fondu…
+    const t1 = setTimeout(() => {
+      Animated.timing(title, { toValue: 1, duration: 500, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
     }, 1900);
-    const safety = setTimeout(finish, 5200);
-    return () => { clearTimeout(t); clearTimeout(safety); };
-  }, [text]);
+    // …puis la phrase, 1 seconde après.
+    const t2 = setTimeout(() => {
+      Animated.timing(tagline, { toValue: 1, duration: 500, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
+    }, 2900);
+    const safety = setTimeout(finish, 6000);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(safety); };
+  }, [title, tagline]);
 
-  const translateY = text.interpolate({ inputRange: [0, 1], outputRange: [14, 0] });
+  const titleY = title.interpolate({ inputRange: [0, 1], outputRange: [14, 0] });
+  const taglineY = tagline.interpolate({ inputRange: [0, 1], outputRange: [14, 0] });
 
   return (
     <Animated.View style={[styles.container, { opacity: container }]} pointerEvents="none">
@@ -43,10 +50,12 @@ export function AnimatedSplash({ onDone }: { onDone: () => void }) {
           onAnimationFinish={finish}
           style={styles.lottie}
         />
-        <Animated.View style={{ opacity: text, transform: [{ translateY }], alignItems: 'center' }}>
-          <Text style={styles.title}>FIL</Text>
-          <Text style={styles.tagline}>loin des yeux, près du cœur</Text>
-        </Animated.View>
+        <Animated.Text style={[styles.title, { opacity: title, transform: [{ translateY: titleY }] }]}>
+          FIL
+        </Animated.Text>
+        <Animated.Text style={[styles.tagline, { opacity: tagline, transform: [{ translateY: taglineY }] }]}>
+          loin des yeux, près du cœur
+        </Animated.Text>
       </View>
     </Animated.View>
   );
