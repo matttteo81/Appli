@@ -24,8 +24,8 @@ export function AnimatedSplash({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     const t = setTimeout(() => {
       Animated.timing(text, { toValue: 1, duration: 500, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
-    }, 1500);
-    const safety = setTimeout(finish, 4500);
+    }, 1900);
+    const safety = setTimeout(finish, 5200);
     return () => { clearTimeout(t); clearTimeout(safety); };
   }, [text]);
 
@@ -38,7 +38,7 @@ export function AnimatedSplash({ onDone }: { onDone: () => void }) {
           source={require('../../assets/plane_heart.json')}
           autoPlay
           loop={false}
-          speed={1.6}
+          speed={1.3}
           resizeMode="contain"
           onAnimationFinish={finish}
           style={styles.lottie}
