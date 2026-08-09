@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -24,7 +25,9 @@ export default function Wishlist() {
   const couple = useAuth((s) => s.couple);
   const profile = useAuth((s) => s.profile);
   const partner = useAuth((s) => s.partner);
-  const { rows, loading } = useCoupleTable<Wish>('wishes', 'created_at', true);
+  const { rows, loading, reload } = useCoupleTable<Wish>('wishes', 'created_at', true);
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => { setRefreshing(true); await reload(); setRefreshing(false); };
   const [text, setText] = useState('');
 
   // À faire d'abord, puis les réalisés en bas.
@@ -76,6 +79,7 @@ export default function Wishlist() {
           <FlatList
             data={sorted}
             keyExtractor={(w) => w.id}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.prune} />}
             contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm, paddingBottom: 20 }}
             ListHeaderComponent={
               <ThemedText variant="label" color={colors.texteGris} style={{ marginBottom: spacing.sm }}>

@@ -6,6 +6,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -36,7 +37,9 @@ export default function Journal() {
   const router = useRouter();
   const couple = useAuth((s) => s.couple);
   const profile = useAuth((s) => s.profile);
-  const { rows, loading } = useCoupleTable<Memory>('memories', 'memory_date', false);
+  const { rows, loading, reload } = useCoupleTable<Memory>('memories', 'memory_date', false);
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => { setRefreshing(true); await reload(); setRefreshing(false); };
 
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [open, setOpen] = useState(false);
@@ -142,6 +145,7 @@ export default function Journal() {
         <FlatList
           data={rows}
           keyExtractor={(m) => m.id}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.prune} />}
           contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }}
           renderItem={({ item, index }) => {
             const mine = item.author_id === profile?.id;
