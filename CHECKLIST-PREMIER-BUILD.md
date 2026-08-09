@@ -208,6 +208,9 @@ Objectif : **1 build → tout tester d'un coup**, méthodiquement, en cochant au
 - [ ] ⤵️ **Pull-to-refresh** sur album, journal et liste « à faire »
 - [ ] 🔔 **Rappel « 2 jours sans se parler »** (local ; autoriser les notifs ; se
       reprogramme à chaque message ; cohabite avec les rappels agenda)
+- [ ] 🎮 **Onglet « Activités »** regroupe Jeux, Ciné à deux, Dessin, Langages de
+      l'amour, Playlist. Barre du bas allégée (Jeux/Playlist masqués → dans Activités).
+      Vérifier que chaque activité s'ouvre bien depuis l'onglet.
 
 ## 11. ⚠️ Points de vigilance
 

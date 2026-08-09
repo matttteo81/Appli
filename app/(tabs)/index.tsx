@@ -38,13 +38,10 @@ const NAV_TILES: {
   color: string;
   dark?: boolean;
 }[] = [
-  { route: '/ensemble', emoji: '🍿', label: 'Ciné à deux', sub: 'Un film synchronisé', color: colors.prune },
   { route: '/wishlist', emoji: '✨', label: 'À faire ensemble', sub: 'Votre liste de rêves', color: colors.sauge, dark: true },
   { route: '/agenda', emoji: '📅', label: 'Notre agenda', sub: 'Dates & rappels', color: colors.ambre, dark: true },
   { route: '/notes', emoji: '💌', label: 'Petits mots', sub: 'Surprises scellées', color: colors.corail },
-  { route: '/amour', emoji: '💞', label: 'Langages de l’amour', sub: 'Le test de couple', color: colors.prune },
   { route: '/journal', emoji: '📔', label: 'Notre journal', sub: 'Frise de souvenirs', color: colors.corail },
-  { route: '/dessin', emoji: '✏️', label: 'Dessin partagé', sub: 'Toile en temps réel', color: colors.sauge, dark: true },
 ];
 
 export default function Home() {

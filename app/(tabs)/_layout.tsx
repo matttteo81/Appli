@@ -51,14 +51,17 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="games"
+          name="activites"
           options={{
-            title: 'Jeux',
+            title: 'Activités',
             tabBarIcon: ({ focused }) => (
               <TabIcon emoji="🎮" focused={focused} />
             ),
           }}
         />
+        {/* Regroupés dans « Activités » — masqués de la barre du bas */}
+        <Tabs.Screen name="games" options={{ href: null }} />
+        <Tabs.Screen name="playlist" options={{ href: null }} />
         <Tabs.Screen
           name="farm"
           options={{
@@ -83,15 +86,6 @@ export default function TabsLayout() {
             title: 'Carte',
             tabBarIcon: ({ focused }) => (
               <TabIcon emoji="🗺️" focused={focused} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="playlist"
-          options={{
-            title: 'Playlist',
-            tabBarIcon: ({ focused }) => (
-              <TabIcon emoji="🎵" focused={focused} />
             ),
           }}
         />
