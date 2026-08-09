@@ -27,6 +27,7 @@ import {
 import { useAuth } from '../src/store/auth';
 import { useLock } from '../src/store/lock';
 import { LockGate } from '../src/components/LockGate';
+import { Toast } from '../src/components/Toast';
 import { AnimatedSplash } from '../src/components/AnimatedSplash';
 import { supabase } from '../src/lib/supabase';
 import { registerForPushNotifications } from '../src/lib/notifications';
@@ -98,6 +99,7 @@ export default function RootLayout() {
           />
         </Stack>
         <LockGate />
+        <Toast />
         {showSplash && <AnimatedSplash onDone={() => setShowSplash(false)} />}
       </SafeAreaProvider>
     </GestureHandlerRootView>

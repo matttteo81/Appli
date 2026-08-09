@@ -26,6 +26,8 @@ import { MOODS } from '../../src/lib/moods';
 import { fetchWeather, Weather } from '../../src/lib/weather';
 import { supabase } from '../../src/lib/supabase';
 import { syncWidgets } from '../../src/lib/widgets';
+import { greeting, wordOfTheDay } from '../../src/lib/sweetWords';
+import { toast } from '../../src/store/toast';
 
 /** Les espaces « à deux » présentés en grille compacte sur l'accueil. */
 const NAV_TILES: {
@@ -215,6 +217,16 @@ export default function Home() {
         ) : null}
 
         <View style={{ padding: spacing.lg, gap: spacing.md }}>
+          {/* Bonjour + mot du jour */}
+          <View>
+            <ThemedText variant="display" color={colors.encre}>
+              {greeting()}{profile?.display_name ? `, ${profile.display_name}` : ''} 💛
+            </ThemedText>
+            <ThemedText variant="body" color={colors.texteGris} style={{ marginTop: 2 }}>
+              {wordOfTheDay()}
+            </ThemedText>
+          </View>
+
           {/* Humeurs */}
           <Card>
             <ThemedText variant="label" color={colors.texteGris}>
@@ -281,7 +293,7 @@ export default function Home() {
                 Invite ta moitié 💌
               </ThemedText>
               <Pressable
-                onPress={() => Clipboard.setStringAsync(couple.invite_code)}
+                onPress={() => { Clipboard.setStringAsync(couple.invite_code); toast('Code copié 💛'); }}
                 style={styles.codeBox}
               >
                 <Text style={styles.codeText}>{couple.invite_code}</Text>

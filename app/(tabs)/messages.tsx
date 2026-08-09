@@ -31,6 +31,7 @@ import { supabase } from '../../src/lib/supabase';
 import type { Message } from '../../src/types/db';
 import { BUILTIN_GIFS, gifSource } from '../../src/lib/gifs';
 import { detectLang, readerLang, translateText } from '../../src/lib/translate';
+import { MessagesSkeleton } from '../../src/components/Skeleton';
 
 const MSG_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
 
@@ -180,7 +181,9 @@ export default function Messages() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={90}
       >
-        {rows.length === 0 && !loading ? (
+        {loading && rows.length === 0 ? (
+          <MessagesSkeleton />
+        ) : rows.length === 0 ? (
           <View style={{ flex: 1, justifyContent: 'center' }}>
             <EmptyState
               emoji="💬"

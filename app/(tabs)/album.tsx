@@ -6,6 +6,7 @@ import {
   FlatList,
   Modal,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
@@ -37,7 +38,9 @@ const COLS = 3;
 const SIZE = (Dimensions.get('window').width - GAP * (COLS - 1)) / COLS;
 
 export default function Album() {
-  const { rows, loading } = useCoupleTable<Photo>('photos');
+  const { rows, loading, reload } = useCoupleTable<Photo>('photos');
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => { setRefreshing(true); await reload(); setRefreshing(false); };
   const couple = useAuth((s) => s.couple);
   const profile = useAuth((s) => s.profile);
   const partner = useAuth((s) => s.partner);
@@ -170,6 +173,7 @@ export default function Album() {
         numColumns={COLS}
         columnWrapperStyle={{ gap: GAP }}
         contentContainerStyle={{ gap: GAP, padding: spacing.md, paddingBottom: 160 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.prune} />}
         ListHeaderComponent={
           <View style={styles.routineCard}>
             <Text style={styles.challengeTag}>📸 VOTRE JOURNÉE À DEUX</Text>
