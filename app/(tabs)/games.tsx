@@ -21,14 +21,23 @@ import { DrawGuessGame } from '../../src/components/games/DrawGuessGame';
 
 type GameId = 'draw' | 'prefere' | 'truthlie' | 'qui' | 'know' | 'q36';
 
-const GAMES: { id: GameId; emoji: string; title: string; subtitle: string; color: string }[] = [
+type Game = { id: GameId; emoji: string; title: string; subtitle: string; color: string };
+
+// Le jeu de dessin en direct, à part.
+const CREATIVE_GAMES: Game[] = [
   { id: 'draw', emoji: '🎨', title: 'Dessine & devine', subtitle: 'L’un dessine, l’autre devine en direct', color: colors.ambre },
+];
+
+// Tous les jeux de questions / quiz, regroupés.
+const QUIZ_GAMES: Game[] = [
   { id: 'prefere', emoji: '🤔', title: 'Tu préfères ?', subtitle: 'Des dilemmes, on compare vos choix', color: colors.corail },
   { id: 'truthlie', emoji: '🎭', title: '2 vérités, 1 mensonge', subtitle: 'Devine l’intrus de l’autre', color: colors.sauge },
   { id: 'qui', emoji: '🙋', title: 'Qui de nous deux ?', subtitle: 'Votez, découvrez si vous êtes d’accord', color: colors.ambre },
   { id: 'know', emoji: '🧠', title: 'Me connais-tu ?', subtitle: 'Devine les réponses de l’autre', color: colors.corail },
   { id: 'q36', emoji: '💞', title: '36 questions', subtitle: 'Les questions pour se rapprocher', color: colors.sauge },
 ];
+
+const GAMES: Game[] = [...CREATIVE_GAMES, ...QUIZ_GAMES];
 
 export default function Games() {
   const [active, setActive] = useState<GameId | null>(null);
@@ -37,16 +46,19 @@ export default function Games() {
   return (
     <Screen>
       <ScreenHeader title="Jeux" subtitle="À faire à deux 💛" />
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
-        {GAMES.map((g) => (
-          <Pressable key={g.id} onPress={() => setActive(g.id)} style={[styles.card, { backgroundColor: g.color }]}>
-            <Text style={{ fontSize: 40 }}>{g.emoji}</Text>
-            <View style={{ flex: 1 }}>
-              <ThemedText variant="title" color={colors.encre}>{g.title}</ThemedText>
-              <ThemedText variant="body" color={colors.encre} style={{ opacity: 0.8 }}>{g.subtitle}</ThemedText>
-            </View>
-            <Text style={{ fontSize: 22, color: colors.encre }}>›</Text>
-          </Pressable>
+      <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm }}>
+        <ThemedText variant="label" color={colors.texteGris} style={styles.section}>
+          DESSIN À DEUX
+        </ThemedText>
+        {CREATIVE_GAMES.map((g) => (
+          <GameCard key={g.id} game={g} onPress={() => setActive(g.id)} />
+        ))}
+
+        <ThemedText variant="label" color={colors.texteGris} style={[styles.section, { marginTop: spacing.lg }]}>
+          QUIZ & QUESTIONS
+        </ThemedText>
+        {QUIZ_GAMES.map((g) => (
+          <GameCard key={g.id} game={g} onPress={() => setActive(g.id)} />
         ))}
       </ScrollView>
 
@@ -87,7 +99,22 @@ export default function Games() {
   );
 }
 
+/** Une carte de jeu (emoji + titre + sous-titre). */
+function GameCard({ game, onPress }: { game: Game; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={[styles.card, { backgroundColor: game.color }]}>
+      <Text style={{ fontSize: 40 }}>{game.emoji}</Text>
+      <View style={{ flex: 1 }}>
+        <ThemedText variant="title" color={colors.encre}>{game.title}</ThemedText>
+        <ThemedText variant="body" color={colors.encre} style={{ opacity: 0.8 }}>{game.subtitle}</ThemedText>
+      </View>
+      <Text style={{ fontSize: 22, color: colors.encre }}>›</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
+  section: { marginBottom: spacing.xs, marginLeft: spacing.xs },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
