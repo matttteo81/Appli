@@ -273,8 +273,13 @@ export default function Messages() {
       <ScreenHeader
         title="Messages"
         right={
-          <Pressable onPress={sendMissYou} disabled={missSending} style={styles.missBtn}>
-            <Text style={styles.missBtnText}>🤍 Tu me manques</Text>
+          <Pressable
+            onPress={sendMissYou}
+            disabled={missSending}
+            style={[styles.missBtn, missSending && { opacity: 0.5 }]}
+            accessibilityLabel="Envoyer « Tu me manques » à ta moitié"
+          >
+            <Text style={styles.missHeart}>🤍</Text>
           </Pressable>
         }
       />
@@ -556,14 +561,14 @@ const styles = StyleSheet.create({
   },
   reactionEmoji: { fontSize: 12 },
   missBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.corail,
-    borderRadius: radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  missBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.creme },
+  missHeart: { fontSize: 21 },
   translateLink: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.corail, marginTop: 4 },
   translated: {
     backgroundColor: colors.cremeDoux,
