@@ -62,15 +62,7 @@ export default function TabsLayout() {
         {/* Regroupés dans « Activités » — masqués de la barre du bas */}
         <Tabs.Screen name="games" options={{ href: null }} />
         <Tabs.Screen name="playlist" options={{ href: null }} />
-        <Tabs.Screen
-          name="farm"
-          options={{
-            title: 'Ferme',
-            tabBarIcon: ({ focused }) => (
-              <TabIcon emoji="🐾" focused={focused} />
-            ),
-          }}
-        />
+        <Tabs.Screen name="farm" options={{ href: null }} />
         <Tabs.Screen
           name="album"
           options={{
