@@ -16,7 +16,7 @@ import {
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
-import { encode as b64encode } from 'base64-arraybuffer';
+import { encode as b64encode, decode as b64decode } from 'base64-arraybuffer';
 import {
   EmptyState,
   Input,
@@ -191,6 +191,42 @@ export default function Messages() {
   const sendBuiltin = async (id: string) => {
     setGifOpen(false);
     await sendGif(`builtin:${id}`);
+  };
+
+  // Importer un GIF déjà existant depuis la galerie et l'envoyer tel quel.
+  const importGif = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Accès refusé', 'Autorise l’accès aux photos dans les réglages.');
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 1,
+      base64: true,
+    });
+    if (res.canceled || !res.assets[0]?.base64 || !couple) return;
+    const asset = res.assets[0];
+    const ext = (asset.uri.split('.').pop() || 'gif').toLowerCase();
+    const isGif = ext === 'gif' || asset.mimeType === 'image/gif';
+    setBusy(true);
+    try {
+      const kind = isGif ? 'gif' : ext === 'png' ? 'png' : 'jpg';
+      const path = `${couple.id}/${Date.now()}.${kind}`;
+      const { error } = await supabase.storage
+        .from('gifs')
+        .upload(path, b64decode(asset.base64!), {
+          contentType: isGif ? 'image/gif' : kind === 'png' ? 'image/png' : 'image/jpeg',
+        });
+      if (error) throw error;
+      const { data: pub } = supabase.storage.from('gifs').getPublicUrl(path);
+      await sendGif(pub.publicUrl);
+      setGifOpen(false);
+    } catch (e: any) {
+      Alert.alert('Oups', e?.message ?? 'Import impossible.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const createFromPhotos = async () => {
@@ -436,21 +472,30 @@ export default function Messages() {
             <View style={styles.createBox}>
               <Text style={{ fontSize: 44 }}>🎞️</Text>
               <ThemedText variant="bodyMedium" center style={{ marginTop: spacing.sm }}>
-                Crée ton GIF à partir de tes photos
+                Envoie un GIF
               </ThemedText>
               <ThemedText variant="body" color={colors.texteGris} center style={{ marginTop: 4, paddingHorizontal: spacing.lg }}>
-                Choisis 2 à 8 photos : elles s'animeront en boucle 💛
+                Importe un GIF de ta galerie 💛
               </ThemedText>
-              <Pressable onPress={createFromPhotos} disabled={busy} style={[styles.createBtn, busy && { opacity: 0.6 }]}>
+              <Pressable onPress={importGif} disabled={busy} style={[styles.createBtn, busy && { opacity: 0.6 }]}>
                 {busy ? (
                   <ActivityIndicator color={colors.encre} />
                 ) : (
-                  <Text style={styles.createBtnTxt}>📷 Choisir mes photos</Text>
+                  <Text style={styles.createBtnTxt}>📥 Importer un GIF</Text>
                 )}
               </Pressable>
+
+              <View style={styles.createDivider} />
+              <ThemedText variant="body" color={colors.texteGris} center style={{ paddingHorizontal: spacing.lg }}>
+                …ou fabrique-en un à partir de 2 à 8 photos
+              </ThemedText>
+              <Pressable onPress={createFromPhotos} disabled={busy} style={[styles.createBtnSecondary, busy && { opacity: 0.6 }]}>
+                <Text style={styles.createBtnSecondaryTxt}>📷 Créer depuis mes photos</Text>
+              </Pressable>
+
               {busy ? (
                 <ThemedText variant="body" color={colors.texteGris} center style={{ marginTop: spacing.sm }}>
-                  Création du GIF…
+                  Un instant…
                 </ThemedText>
               ) : null}
             </View>
@@ -627,4 +672,19 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   createBtnTxt: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.encre },
+  createDivider: {
+    height: 1,
+    alignSelf: 'stretch',
+    backgroundColor: colors.bordure,
+    marginVertical: spacing.lg,
+  },
+  createBtnSecondary: {
+    borderRadius: radius.pill,
+    paddingVertical: 13,
+    paddingHorizontal: spacing.xl,
+    marginTop: spacing.md,
+    borderWidth: 1.5,
+    borderColor: colors.prune,
+  },
+  createBtnSecondaryTxt: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.prune },
 });
