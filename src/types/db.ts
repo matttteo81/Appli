@@ -54,6 +54,7 @@ export type Profile = {
   id: string;
   display_name: string;
   avatar_emoji: string;
+  avatar_path: string | null;
   city_name: string | null;
   city_lat: number | null;
   city_lng: number | null;

@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
-  Dimensions,
   FlatList,
   Modal,
   Pressable,
@@ -10,44 +10,158 @@ import {
   View,
 } from 'react-native';
 import * as Location from 'expo-location';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Button, Input, Screen, ThemedText } from '../../src/components/ui';
-import { Globe } from '../../src/components/Globe';
+import { Image } from 'expo-image';
+import { Button, EmptyState, Input, Screen, ThemedText } from '../../src/components/ui';
+import { ErrorBoundary } from '../../src/components/ErrorBoundary';
 import { fetchWeather } from '../../src/lib/weather';
 import { colors } from '../../src/theme/colors';
 import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useAuth } from '../../src/store/auth';
+import { useCoupleTable } from '../../src/hooks/useCoupleTable';
 import { City, searchCities } from '../../src/lib/cities';
 import { distanceKm } from '../../src/lib/geo';
+import { supabase } from '../../src/lib/supabase';
+import type { Photo, Memory } from '../../src/types/db';
+import type { Pin, PhotoMapHandle } from '../../src/components/PhotoMap';
 
-const { width } = Dimensions.get('window');
-const GLOBE_SIZE = Math.min(width - 32, 340);
+// Carte native isolée + chargée à la demande (garde expo-maps hors du démarrage).
+const PhotoMap = React.lazy(() => import('../../src/components/PhotoMap'));
+
+type LatLng = { latitude: number; longitude: number };
+
+/** Niveau de zoom qui englobe un ensemble de points. */
+function zoomForSpan(coords: LatLng[]): number {
+  if (coords.length < 2) return 5;
+  const lats = coords.map((c) => c.latitude);
+  const lngs = coords.map((c) => c.longitude);
+  const span = Math.max(
+    Math.max(...lats) - Math.min(...lats),
+    Math.max(...lngs) - Math.min(...lngs),
+  );
+  if (span <= 0) return 8;
+  return Math.max(1, Math.min(12, Math.log2(360 / span) - 1));
+}
+
+function fitOf(coords: LatLng[]): { center: LatLng; zoom: number } {
+  if (coords.length === 0) return { center: { latitude: 20, longitude: 0 }, zoom: 1.5 };
+  const lat = coords.reduce((s, c) => s + c.latitude, 0) / coords.length;
+  const lng = coords.reduce((s, c) => s + c.longitude, 0) / coords.length;
+  return { center: { latitude: lat, longitude: lng }, zoom: zoomForSpan(coords) };
+}
+
+function frShort(iso: string) {
+  return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 export default function MapScreen() {
-  const router = useRouter();
   const profile = useAuth((s) => s.profile);
   const partner = useAuth((s) => s.partner);
   const updateProfile = useAuth((s) => s.updateProfile);
+  const { rows: photos } = useCoupleTable<Photo>('photos');
+  const { rows: memories } = useCoupleTable<Memory>('memories', 'memory_date', false);
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [locating, setLocating] = useState(false);
+  const [avatarUrls, setAvatarUrls] = useState<{ me?: string; partner?: string }>({});
+  const mapRef = useRef<PhotoMapHandle>(null);
+
+  const meHasCity = profile?.city_lat != null && profile?.city_lng != null;
+  const partnerHasCity = partner?.city_lat != null && partner?.city_lng != null;
+
+  const mePos: LatLng | null = meHasCity
+    ? { latitude: profile!.city_lat!, longitude: profile!.city_lng! }
+    : null;
+  const partnerPos: LatLng | null = partnerHasCity
+    ? { latitude: partner!.city_lat!, longitude: partner!.city_lng! }
+    : null;
+
+  const distance = useMemo(
+    () => (mePos && partnerPos
+      ? distanceKm(mePos.latitude, mePos.longitude, partnerPos.latitude, partnerPos.longitude)
+      : null),
+    [mePos, partnerPos],
+  );
+
+  // URLs signées des photos de profil (bucket privé).
+  useEffect(() => {
+    const paths = [profile?.avatar_path, partner?.avatar_path].filter((p): p is string => !!p);
+    if (paths.length === 0) { setAvatarUrls({}); return; }
+    let active = true;
+    (async () => {
+      const { data } = await supabase.storage.from('photos').createSignedUrls(paths, 60 * 60);
+      if (!active || !data) return;
+      const map: Record<string, string> = {};
+      data.forEach((d) => { if (d.signedUrl && d.path) map[d.path] = d.signedUrl; });
+      setAvatarUrls({
+        me: profile?.avatar_path ? map[profile.avatar_path] : undefined,
+        partner: partner?.avatar_path ? map[partner.avatar_path] : undefined,
+      });
+    })();
+    return () => { active = false; };
+  }, [profile?.avatar_path, partner?.avatar_path]);
+
+  // Toutes les épingles : vous deux + photos géolocalisées + souvenirs du Journal.
+  const pins = useMemo<Pin[]>(() => {
+    const out: Pin[] = [];
+    if (mePos) {
+      out.push({ id: 'me', ...mePos, kind: 'me', title: profile?.display_name ?? 'Toi' });
+    }
+    if (partnerPos) {
+      out.push({ id: 'partner', ...partnerPos, kind: 'partner', title: partner?.display_name ?? 'Ta moitié' });
+    }
+
+    // Photos regroupées par lieu (~11 km).
+    const geo = photos.filter((p) => p.lat != null && p.lng != null);
+    const clusters: Record<string, { lat: number; lng: number; items: Photo[] }> = {};
+    for (const p of geo) {
+      const key = `${p.lat!.toFixed(1)},${p.lng!.toFixed(1)}`;
+      const c = (clusters[key] ??= { lat: 0, lng: 0, items: [] });
+      c.lat += p.lat!; c.lng += p.lng!; c.items.push(p);
+    }
+    for (const [key, c] of Object.entries(clusters)) {
+      const n = c.items.length;
+      out.push({
+        id: `photo-${key}`,
+        latitude: c.lat / n,
+        longitude: c.lng / n,
+        title: n > 1 ? `${n} photos ici` : c.items[0].caption?.trim() || frShort(c.items[0].created_at),
+        kind: 'photo',
+      });
+    }
+
+    // Souvenirs du Journal géolocalisés.
+    for (const m of memories) {
+      if (m.lat == null || m.lng == null) continue;
+      out.push({
+        id: `memory-${m.id}`,
+        latitude: m.lat,
+        longitude: m.lng,
+        title: m.title?.trim() || frShort(m.memory_date),
+        kind: 'memory',
+      });
+    }
+    return out;
+  }, [mePos, partnerPos, photos, memories, profile?.display_name, partner?.display_name]);
+
+  const initial = useMemo(() => fitOf(pins.map((p) => ({ latitude: p.latitude, longitude: p.longitude }))), [pins]);
+
+  const focusBoth = () => {
+    const both = [mePos, partnerPos].filter((p): p is LatLng => !!p);
+    if (both.length === 0) return;
+    const { center, zoom } = fitOf(both);
+    mapRef.current?.setCameraPosition({ coordinates: center, zoom });
+  };
 
   const useExactLocation = async () => {
     setLocating(true);
     try {
       const perm = await Location.requestForegroundPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert(
-          'Localisation refusée',
-          'Autorise la localisation dans les réglages pour utiliser ta position exacte.',
-        );
+        Alert.alert('Localisation refusée', 'Autorise la localisation dans les réglages pour utiliser ta position exacte.');
         return;
       }
-      const pos = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const { latitude, longitude } = pos.coords;
       let cityName = 'Ma position';
       try {
@@ -57,9 +171,7 @@ export default function MapScreen() {
       } catch {}
       const w = await fetchWeather(latitude, longitude);
       await updateProfile({
-        city_name: cityName,
-        city_lat: latitude,
-        city_lng: longitude,
+        city_name: cityName, city_lat: latitude, city_lng: longitude,
         timezone: w?.timezone ?? profile?.timezone ?? null,
       });
     } catch (e: any) {
@@ -69,138 +181,103 @@ export default function MapScreen() {
     }
   };
 
-  const meHasCity = profile?.city_lat != null && profile?.city_lng != null;
-  const partnerHasCity = partner?.city_lat != null && partner?.city_lng != null;
-
-  const distance = useMemo(() => {
-    if (meHasCity && partnerHasCity) {
-      return distanceKm(
-        profile!.city_lat!,
-        profile!.city_lng!,
-        partner!.city_lat!,
-        partner!.city_lng!,
-      );
-    }
-    return null;
-  }, [profile, partner, meHasCity, partnerHasCity]);
-
   const results = useMemo(() => searchCities(query), [query]);
-
   const chooseCity = async (city: City) => {
     setPickerOpen(false);
     setQuery('');
     await updateProfile({
       city_name: `${city.name}, ${city.country}`,
-      city_lat: city.lat,
-      city_lng: city.lng,
-      timezone: city.timezone,
+      city_lat: city.lat, city_lng: city.lng, timezone: city.timezone,
     });
   };
 
-  const mePlace = meHasCity
-    ? { lat: profile!.city_lat!, lng: profile!.city_lng!, name: profile?.display_name ?? 'Moi' }
-    : null;
-  const partnerPlace = partnerHasCity
-    ? {
-        lat: partner!.city_lat!,
-        lng: partner!.city_lng!,
-        name: partner?.display_name ?? 'Ma moitié',
-      }
-    : null;
+  const mapFallback = (
+    <View style={{ flex: 1, justifyContent: 'center' }}>
+      <EmptyState
+        emoji="🗺️"
+        title="Carte indisponible"
+        subtitle="La carte n'a pas pu se charger sur cet appareil."
+      />
+    </View>
+  );
 
   return (
     <Screen edges={['top']} background="transparent">
-      <LinearGradient colors={['#0B0B1E', '#1B1B3A', '#2A2A4E']} style={StyleSheet.absoluteFill} />
-      <View style={{ flex: 1 }}>
-        {/* Bandeau distance */}
-        <View style={styles.topBanner}>
-          <View style={styles.pill}>
-            <Text style={styles.pillText}>
-              {distance != null
-                ? `${distance.toLocaleString('fr-FR')} km vous séparent`
-                : 'Choisissez vos villes'}
-            </Text>
-          </View>
+      <View style={StyleSheet.absoluteFill}>
+        <ErrorBoundary fallback={mapFallback}>
+          <Suspense
+            fallback={
+              <View style={[StyleSheet.absoluteFill, styles.loading]}>
+                <ActivityIndicator color={colors.creme} />
+              </View>
+            }
+          >
+            <PhotoMap
+              ref={mapRef}
+              center={initial.center}
+              zoom={initial.zoom}
+              pins={pins}
+              satellite
+              showUserLocation
+              onPinPress={() => {}}
+            />
+          </Suspense>
+        </ErrorBoundary>
+      </View>
+
+      {/* Bandeau distance : large et fin */}
+      <View style={styles.topOverlay} pointerEvents="box-none">
+        <View style={styles.distanceBar}>
+          <Text style={styles.distanceText} numberOfLines={1}>
+            {distance != null
+              ? `✈️  ${distance.toLocaleString('fr-FR')} km vous séparent`
+              : 'Choisissez vos villes'}
+          </Text>
         </View>
 
-        {/* Le globe */}
-        <View style={styles.globeWrap}>
-          <Globe me={mePlace} partner={partnerPlace} size={GLOBE_SIZE} />
-          {!meHasCity && !partnerHasCity ? (
-            <ThemedText
-              variant="body"
-              color={colors.cremeDoux}
-              center
-              style={{ marginTop: spacing.lg, paddingHorizontal: spacing.xl }}
-            >
-              Choisissez vos villes pour voir le fil qui vous relie sur la
-              planète ✈️
-            </ThemedText>
-          ) : null}
-        </View>
+        {/* Vous deux, avec vos photos et vos positions */}
+        {mePos || partnerPos ? (
+          <Pressable style={styles.peopleChip} onPress={focusBoth}>
+            <PersonMini
+              url={avatarUrls.me}
+              emoji={profile?.avatar_emoji}
+              city={profile?.city_name}
+              ring={colors.ambre}
+            />
+            <View style={styles.chipDivider} />
+            <PersonMini
+              url={avatarUrls.partner}
+              emoji={partner?.avatar_emoji}
+              city={partner?.city_name}
+              ring={colors.sauge}
+            />
+          </Pressable>
+        ) : null}
+      </View>
 
-        {/* Boutons localisation */}
-        <View style={styles.bottomBar}>
-          {meHasCity ? (
-            <ThemedText
-              variant="label"
-              color={colors.creme}
-              center
-              style={{ marginBottom: spacing.sm }}
-            >
-              📍 {profile?.city_name}
-            </ThemedText>
-          ) : null}
-          <Button
-            title={locating ? 'Localisation…' : '📍 Ma position exacte'}
-            onPress={useExactLocation}
-            loading={locating}
-          />
-          <Button
-            title="Ou choisir une ville"
-            variant="ghost"
-            onPress={() => setPickerOpen(true)}
-            style={{ marginTop: spacing.sm }}
-          />
-          <Button
-            title="🗺️ La vraie carte de nos souvenirs"
-            variant="ghost"
-            onPress={() => router.push('/carte-photos')}
-            style={{ marginTop: spacing.sm }}
-          />
-          <Button
-            title="📸 Nos souvenirs par lieu"
-            variant="ghost"
-            onPress={() => router.push('/souvenirs')}
-            style={{ marginTop: spacing.sm }}
-          />
-        </View>
+      {/* Contrôles position */}
+      <View style={styles.bottomBar} pointerEvents="box-none">
+        <Button
+          title={locating ? 'Localisation…' : '📍 Ma position exacte'}
+          onPress={useExactLocation}
+          loading={locating}
+        />
+        <Pressable onPress={() => setPickerOpen(true)} style={styles.cityBtn}>
+          <Text style={styles.cityBtnText}>Ou choisir une ville</Text>
+        </Pressable>
       </View>
 
       {/* Recherche de ville */}
       <Modal visible={pickerOpen} animationType="slide">
         <Screen>
           <View style={{ padding: spacing.lg, gap: spacing.md, flex: 1 }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <ThemedText variant="displaySmall">Ta ville</ThemedText>
               <Pressable onPress={() => setPickerOpen(false)}>
-                <ThemedText variant="bodyMedium" color={colors.corail}>
-                  Fermer
-                </ThemedText>
+                <ThemedText variant="bodyMedium" color={colors.corail}>Fermer</ThemedText>
               </Pressable>
             </View>
-            <Input
-              placeholder="Rechercher une ville…"
-              value={query}
-              onChangeText={setQuery}
-              autoFocus
-            />
+            <Input placeholder="Rechercher une ville…" value={query} onChangeText={setQuery} autoFocus />
             <FlatList
               data={results}
               keyExtractor={(c) => `${c.name}-${c.country}`}
@@ -209,20 +286,13 @@ export default function MapScreen() {
                 <Pressable onPress={() => chooseCity(item)} style={styles.cityRow}>
                   <View>
                     <ThemedText variant="bodyMedium">{item.name}</ThemedText>
-                    <ThemedText variant="body" color={colors.texteGris}>
-                      {item.country}
-                    </ThemedText>
+                    <ThemedText variant="body" color={colors.texteGris}>{item.country}</ThemedText>
                   </View>
                   <Text style={{ fontSize: 18 }}>📍</Text>
                 </Pressable>
               )}
               ListEmptyComponent={
-                <ThemedText
-                  variant="body"
-                  color={colors.texteGris}
-                  center
-                  style={{ marginTop: spacing.lg }}
-                >
+                <ThemedText variant="body" color={colors.texteGris} center style={{ marginTop: spacing.lg }}>
                   Aucune ville trouvée. Essaie une grande ville proche.
                 </ThemedText>
               }
@@ -234,35 +304,83 @@ export default function MapScreen() {
   );
 }
 
+/** Petite pastille : photo de profil (ou emoji) + ville, dans le bandeau. */
+function PersonMini({
+  url, emoji, city, ring,
+}: { url?: string; emoji?: string | null; city?: string | null; ring: string }) {
+  return (
+    <View style={styles.personMini}>
+      <View style={[styles.avatar, { borderColor: ring }]}>
+        {url ? (
+          <Image source={{ uri: url }} style={styles.avatarImg} contentFit="cover" />
+        ) : (
+          <Text style={styles.avatarEmoji}>{emoji ?? '💛'}</Text>
+        )}
+      </View>
+      <Text style={styles.personCity} numberOfLines={1}>{city ?? '—'}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  globeWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topBanner: {
+  loading: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.encre },
+  topOverlay: {
     position: 'absolute',
     top: spacing.md,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 2,
+    left: spacing.md,
+    right: spacing.md,
+    gap: spacing.sm,
   },
-  pill: {
-    backgroundColor: colors.encreDoux,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 10,
+  distanceBar: {
+    backgroundColor: 'rgba(27,27,58,0.72)',
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.bordureClaire,
+    paddingVertical: 7,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
   },
-  pillText: { color: colors.creme, fontFamily: fonts.monoMedium, fontSize: 15 },
+  distanceText: {
+    color: colors.creme,
+    fontFamily: fonts.monoMedium,
+    fontSize: 14,
+  },
+  peopleChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    gap: spacing.sm,
+    backgroundColor: 'rgba(251,246,239,0.94)',
+    borderRadius: radius.pill,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  chipDivider: { width: 1, height: 26, backgroundColor: colors.bordure },
+  personMini: { flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: 130 },
+  avatar: {
+    width: 30, height: 30, borderRadius: 15, borderWidth: 2,
+    alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+    backgroundColor: colors.cremeDoux,
+  },
+  avatarImg: { width: '100%', height: '100%' },
+  avatarEmoji: { fontSize: 16 },
+  personCity: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.encre, flexShrink: 1 },
   bottomBar: {
     position: 'absolute',
     bottom: spacing.lg,
     left: spacing.lg,
     right: spacing.lg,
   },
+  cityBtn: {
+    marginTop: spacing.sm,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(27,27,58,0.6)',
+    borderWidth: 1,
+    borderColor: colors.bordureClaire,
+  },
+  cityBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.creme },
   cityRow: {
     flexDirection: 'row',
     alignItems: 'center',

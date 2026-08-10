@@ -93,6 +93,7 @@ export default function Parametres() {
 
   const [uploadingBg, setUploadingBg] = useState(false);
   const [uploadingTogether, setUploadingTogether] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const pickAndUpload = async (
@@ -133,6 +134,8 @@ export default function Parametres() {
     pickAndUpload('home', setUploadingBg, (path) => updateCouple({ home_photo_path: path }));
   const changeTogetherPhoto = () =>
     pickAndUpload('together', setUploadingTogether, (path) => updateCouple({ together_photo_path: path }));
+  const changeAvatar = () =>
+    pickAndUpload('avatar', setUploadingAvatar, (path) => updateProfile({ avatar_path: path }));
 
   const toggleLock = async (v: boolean) => {
     const ok = await setLockEnabled(v);
@@ -191,6 +194,13 @@ export default function Parametres() {
         <View>
           <ThemedText variant="label" color={colors.texteGris} style={styles.section}>PHOTOS</ThemedText>
           <View style={styles.group}>
+            <Row
+              title="Ma photo de profil"
+              subtitle={uploadingAvatar ? 'Envoi…' : 'Elle s’affiche sur la carte, à ta position'}
+              onPress={changeAvatar}
+              disabled={uploadingAvatar}
+            />
+            <View style={styles.sep} />
             <Row
               title="Photo d’accueil"
               subtitle={uploadingBg ? 'Envoi…' : 'L’image de fond de l’accueil'}
