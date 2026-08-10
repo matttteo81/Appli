@@ -25,7 +25,6 @@ import { MOODS } from '../../src/lib/moods';
 import { fetchWeather, Weather } from '../../src/lib/weather';
 import { supabase } from '../../src/lib/supabase';
 import { syncWidgets } from '../../src/lib/widgets';
-import { greeting, wordOfTheDay } from '../../src/lib/sweetWords';
 import { toast } from '../../src/store/toast';
 
 /** Les espaces « à deux » présentés en grille compacte sur l'accueil. */
@@ -178,6 +177,7 @@ export default function Home() {
 
       <ScrollView contentContainerStyle={{ paddingBottom: 150 }}>
         <TwinSky
+          streak={streak}
           me={{
             name: profile?.display_name ?? 'Moi',
             city: profile?.city_name ?? null,
@@ -192,25 +192,9 @@ export default function Home() {
           }}
         />
 
-        {streak && streak > 0 ? (
-          <View style={styles.streak}>
-            <Text style={{ fontSize: 18 }}>🔥</Text>
-            <Text style={styles.streakText}>
-              {streak} jour{streak > 1 ? 's' : ''} d'affilée sur Fil
-            </Text>
-          </View>
-        ) : null}
-
         <View style={{ padding: spacing.lg, gap: spacing.md }}>
-          {/* Bonjour + mot du jour */}
-          <View>
-            <ThemedText variant="display" color={colors.encre}>
-              {greeting()}{profile?.display_name ? `, ${profile.display_name}` : ''} 💛
-            </ThemedText>
-            <ThemedText variant="body" color={colors.texteGris} style={{ marginTop: 2 }}>
-              {wordOfTheDay()}
-            </ThemedText>
-          </View>
+          {/* Comptes à rebours (retrouvailles) — remontés tout en haut */}
+          <CountdownsCard />
 
           {/* Humeurs */}
           <Card>
@@ -337,9 +321,6 @@ export default function Home() {
             </View>
           </View>
 
-          {/* Comptes à rebours multiples */}
-          <CountdownsCard />
-
           {/* Paramètres (page dédiée) */}
           <Pressable onPress={() => router.push('/parametres')}>
             <Card>
@@ -457,20 +438,6 @@ function formatDateFr(d: Date): string {
 }
 
 const styles = StyleSheet.create({
-  streak: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: spacing.md,
-    marginHorizontal: spacing.lg,
-    backgroundColor: colors.cremeDoux,
-    borderRadius: radius.pill,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: colors.ambre,
-  },
-  streakText: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.encre },
   tileGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

@@ -17,7 +17,15 @@ type Side = {
  * Deux moitiés de ciel. Chaque côté a un dégradé selon l'heure locale de
  * la personne (aube / jour / crépuscule / nuit) et affiche son heure.
  */
-export function TwinSky({ me, partner }: { me: Side; partner: Side }) {
+export function TwinSky({
+  me,
+  partner,
+  streak,
+}: {
+  me: Side;
+  partner: Side;
+  streak?: number | null;
+}) {
   // On rafraîchit l'heure chaque minute.
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -30,6 +38,14 @@ export function TwinSky({ me, partner }: { me: Side; partner: Side }) {
       <SkyHalf side={me} align="flex-start" />
       <SkyHalf side={partner} align="flex-end" />
       <View style={styles.seam} />
+      {/* Série « à deux » : nombre de jours où vous êtes venus tous les deux. */}
+      {streak && streak > 0 ? (
+        <View style={styles.streakWrap} pointerEvents="none">
+          <View style={styles.streakBadge}>
+            <Text style={styles.streakText}>🔥 {streak} jour{streak > 1 ? 's' : ''}</Text>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -102,6 +118,26 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: 1,
     backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  streakWrap: {
+    position: 'absolute',
+    top: 10,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  streakBadge: {
+    backgroundColor: 'rgba(27,27,58,0.55)',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(251,246,239,0.3)',
+  },
+  streakText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    color: colors.creme,
   },
   emoji: { fontSize: 26, marginBottom: 4 },
   time: { fontFamily: fonts.monoMedium, fontSize: 34, letterSpacing: 1 },
