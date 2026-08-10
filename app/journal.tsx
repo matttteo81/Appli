@@ -18,6 +18,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { gpsFromExif } from '../src/lib/exifgps';
+import { markSeen } from '../src/lib/homeBadges';
 import { Button, EmptyState, Input, Screen, ThemedText } from '../src/components/ui';
 import { colors } from '../src/theme/colors';
 import { fonts, radius, spacing } from '../src/theme/typography';
@@ -39,6 +40,7 @@ export default function Journal() {
   const couple = useAuth((s) => s.couple);
   const profile = useAuth((s) => s.profile);
   const { rows, loading, reload } = useCoupleTable<Memory>('memories', 'memory_date', false);
+  useEffect(() => { markSeen('journal'); }, []);
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => { setRefreshing(true); await reload(); setRefreshing(false); };
 

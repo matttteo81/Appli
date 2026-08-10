@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -21,6 +21,7 @@ import { fonts, radius, spacing } from '../src/theme/typography';
 import { useCoupleTable } from '../src/hooks/useCoupleTable';
 import { useAuth } from '../src/store/auth';
 import { supabase } from '../src/lib/supabase';
+import { markSeen } from '../src/lib/homeBadges';
 import type { LoveNote } from '../src/types/db';
 
 function frDate(iso: string) {
@@ -35,6 +36,7 @@ export default function Notes() {
   const profile = useAuth((s) => s.profile);
   const partner = useAuth((s) => s.partner);
   const { rows, loading } = useCoupleTable<LoveNote>('love_notes', 'created_at', false);
+  useEffect(() => { markSeen('notes'); }, []);
 
   const [composing, setComposing] = useState(false);
   const [body, setBody] = useState('');

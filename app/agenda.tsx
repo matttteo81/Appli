@@ -19,6 +19,7 @@ import { useCoupleTable } from '../src/hooks/useCoupleTable';
 import { useAuth } from '../src/store/auth';
 import { supabase } from '../src/lib/supabase';
 import { syncEventReminders } from '../src/lib/reminders';
+import { markSeen } from '../src/lib/homeBadges';
 import type { CoupleEvent } from '../src/types/db';
 
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
@@ -48,6 +49,7 @@ export default function Agenda() {
   const couple = useAuth((s) => s.couple);
   const profile = useAuth((s) => s.profile);
   const { rows, loading } = useCoupleTable<CoupleEvent>('events', 'event_date', true);
+  useEffect(() => { markSeen('agenda'); }, []);
 
   const [cursor, setCursor] = useState(() => {
     const d = new Date();

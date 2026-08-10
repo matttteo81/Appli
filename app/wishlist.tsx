@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -18,6 +18,7 @@ import { fonts, radius, spacing } from '../src/theme/typography';
 import { useCoupleTable } from '../src/hooks/useCoupleTable';
 import { useAuth } from '../src/store/auth';
 import { supabase } from '../src/lib/supabase';
+import { markSeen } from '../src/lib/homeBadges';
 import type { Wish } from '../src/types/db';
 
 export default function Wishlist() {
@@ -26,6 +27,7 @@ export default function Wishlist() {
   const profile = useAuth((s) => s.profile);
   const partner = useAuth((s) => s.partner);
   const { rows, loading, reload } = useCoupleTable<Wish>('wishes', 'created_at', true);
+  useEffect(() => { markSeen('wishlist'); }, []);
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => { setRefreshing(true); await reload(); setRefreshing(false); };
   const [text, setText] = useState('');

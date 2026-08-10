@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -25,6 +25,7 @@ import { MOODS } from '../../src/lib/moods';
 import { fetchWeather, Weather } from '../../src/lib/weather';
 import { supabase } from '../../src/lib/supabase';
 import { syncWidgets } from '../../src/lib/widgets';
+import { loadHomeBadges, HomeSection } from '../../src/lib/homeBadges';
 import { toast } from '../../src/store/toast';
 
 /** Les espaces « à deux » présentés en grille compacte sur l'accueil. */
@@ -58,6 +59,21 @@ export default function Home() {
   const [myWeather, setMyWeather] = useState<Weather | null>(null);
   const [partnerWeather, setPartnerWeather] = useState<Weather | null>(null);
   const [streak, setStreak] = useState<number | null>(null);
+  const [badges, setBadges] = useState<Record<HomeSection, number>>({
+    wishlist: 0, agenda: 0, notes: 0, journal: 0,
+  });
+
+  // Badges de nouveautés (ce que ta moitié a ajouté depuis ta dernière visite),
+  // recalculés à chaque fois qu'on revient sur l'accueil.
+  useFocusEffect(
+    React.useCallback(() => {
+      let active = true;
+      if (couple?.id) {
+        loadHomeBadges(couple.id, partner?.id).then((b) => { if (active) setBadges(b); });
+      }
+      return () => { active = false; };
+    }, [couple?.id, partner?.id]),
+  );
 
   // Série (streak) : marque l'activité du jour et récupère le compteur.
   useEffect(() => {
@@ -228,12 +244,19 @@ export default function Home() {
             À DEUX
           </ThemedText>
           <View style={styles.tileGrid}>
-            {NAV_TILES.map((t) => (
+            {NAV_TILES.map((t) => {
+              const count = badges[t.route.slice(1) as HomeSection] ?? 0;
+              return (
               <Pressable
                 key={t.route}
                 onPress={() => router.push(t.route as never)}
                 style={[styles.tile, { backgroundColor: t.color }]}
               >
+                {count > 0 ? (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{count > 9 ? '9+' : count}</Text>
+                  </View>
+                ) : null}
                 <Text style={styles.tileEmoji}>{t.emoji}</Text>
                 <View>
                   <ThemedText variant="bodyMedium" color={t.dark ? colors.encre : colors.creme}>
@@ -249,7 +272,8 @@ export default function Home() {
                   </ThemedText>
                 </View>
               </Pressable>
-            ))}
+              );
+            })}
           </View>
 
           {/* Question du jour */}
@@ -452,6 +476,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   tileEmoji: { fontSize: 30 },
+  badge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 5,
+    backgroundColor: '#E5484D',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.creme,
+  },
+  badgeText: { fontFamily: fonts.bodyBold, fontSize: 12, color: '#fff' },
   togetherCard: {
     borderRadius: radius.lg,
     overflow: 'hidden',
