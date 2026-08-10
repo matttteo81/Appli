@@ -9,6 +9,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -29,7 +30,7 @@ import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useCoupleTable } from '../../src/hooks/useCoupleTable';
 import { useAuth } from '../../src/store/auth';
 import { supabase } from '../../src/lib/supabase';
-import type { Message } from '../../src/types/db';
+import type { Message, SavedGif } from '../../src/types/db';
 import { BUILTIN_GIFS, gifSource } from '../../src/lib/gifs';
 import { detectLang, readerLang, translateText } from '../../src/lib/translate';
 import { MessagesSkeleton } from '../../src/components/Skeleton';
@@ -61,12 +62,13 @@ function MsgRow({ mine, children }: { mine: boolean; children: React.ReactNode }
 
 export default function Messages() {
   const { rows, loading } = useCoupleTable<Message>('messages', 'created_at', false);
+  const { rows: savedGifs } = useCoupleTable<SavedGif>('saved_gifs', 'created_at', false);
   const couple = useAuth((s) => s.couple);
   const profile = useAuth((s) => s.profile);
   const partner = useAuth((s) => s.partner);
   const [text, setText] = useState('');
   const [gifOpen, setGifOpen] = useState(false);
-  const [tab, setTab] = useState<'gifs' | 'create'>('gifs');
+  const [tab, setTab] = useState<'mine' | 'gifs' | 'create'>('mine');
   const [busy, setBusy] = useState(false);
   const [actionMsg, setActionMsg] = useState<Message | null>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
@@ -193,6 +195,22 @@ export default function Messages() {
     await sendGif(`builtin:${id}`);
   };
 
+  // Ajoute un GIF à la bibliothèque « Mes GIFs » (partagée avec ta moitié).
+  const saveGif = async (url: string) => {
+    if (!couple || !profile) return;
+    try {
+      await supabase.from('saved_gifs').insert({ couple_id: couple.id, author_id: profile.id, url });
+    } catch {
+      // silencieux : l'envoi du GIF a déjà réussi, la sauvegarde est un bonus.
+    }
+  };
+
+  // Renvoie un GIF déjà présent dans « Mes GIFs ».
+  const sendSaved = async (url: string) => {
+    setGifOpen(false);
+    await sendGif(url);
+  };
+
   // Importer un GIF déjà existant depuis la galerie et l'envoyer tel quel.
   const importGif = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -220,6 +238,7 @@ export default function Messages() {
         });
       if (error) throw error;
       const { data: pub } = supabase.storage.from('gifs').getPublicUrl(path);
+      await saveGif(pub.publicUrl);
       await sendGif(pub.publicUrl);
       setGifOpen(false);
     } catch (e: any) {
@@ -259,6 +278,7 @@ export default function Messages() {
         });
       if (error) throw error;
       const { data: pub } = supabase.storage.from('gifs').getPublicUrl(path);
+      await saveGif(pub.publicUrl);
       await sendGif(pub.publicUrl);
       setGifOpen(false);
     } catch (e: any) {
@@ -334,7 +354,12 @@ export default function Messages() {
                       </View>
                     ) : null}
 
-                    <View style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '100%' }}>
+                    <View
+                      style={[
+                        { alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '100%' },
+                        reactionEmojis.length > 0 && { marginBottom: 8 },
+                      ]}
+                    >
                       {src ? (
                         <View style={styles.gifWrap}>
                           <Image source={src} style={styles.gif} contentFit="cover" />
@@ -409,7 +434,7 @@ export default function Messages() {
         ) : null}
 
         <View style={styles.inputBar}>
-          <Pressable onPress={() => { setGifOpen(true); setTab('gifs'); }} style={styles.gifBtn}>
+          <Pressable onPress={() => { setGifOpen(true); setTab(savedGifs.length > 0 ? 'mine' : 'gifs'); }} style={styles.gifBtn}>
             <Text style={styles.gifBtnTxt}>GIF</Text>
           </Pressable>
           <Input
@@ -456,15 +481,38 @@ export default function Messages() {
         <Pressable style={styles.backdrop} onPress={() => !busy && setGifOpen(false)} />
         <View style={styles.sheet}>
           <View style={styles.tabs}>
+            <Pressable onPress={() => setTab('mine')} style={[styles.tab, tab === 'mine' && styles.tabOn]}>
+              <Text style={[styles.tabTxt, tab === 'mine' && styles.tabTxtOn]}>Mes GIFs</Text>
+            </Pressable>
             <Pressable onPress={() => setTab('gifs')} style={[styles.tab, tab === 'gifs' && styles.tabOn]}>
               <Text style={[styles.tabTxt, tab === 'gifs' && styles.tabTxtOn]}>GIFs</Text>
             </Pressable>
             <Pressable onPress={() => setTab('create')} style={[styles.tab, tab === 'create' && styles.tabOn]}>
-              <Text style={[styles.tabTxt, tab === 'create' && styles.tabTxtOn]}>Créer</Text>
+              <Text style={[styles.tabTxt, tab === 'create' && styles.tabTxtOn]}>Ajouter</Text>
             </Pressable>
           </View>
 
-          {tab === 'gifs' ? (
+          {tab === 'mine' ? (
+            savedGifs.length === 0 ? (
+              <View style={styles.createBox}>
+                <Text style={{ fontSize: 44 }}>🎞️</Text>
+                <ThemedText variant="bodyMedium" center style={{ marginTop: spacing.sm }}>
+                  Aucun GIF pour l'instant
+                </ThemedText>
+                <ThemedText variant="body" color={colors.texteGris} center style={{ marginTop: 4, paddingHorizontal: spacing.lg }}>
+                  Importe un GIF depuis l'onglet « Ajouter » : il restera ici 💛
+                </ThemedText>
+              </View>
+            ) : (
+              <ScrollView style={{ maxHeight: 380 }} contentContainerStyle={styles.gifGrid}>
+                {savedGifs.map((g) => (
+                  <Pressable key={g.id} onPress={() => sendSaved(g.url)} style={styles.gifCell}>
+                    <Image source={{ uri: g.url }} style={styles.gifThumb} contentFit="cover" />
+                  </Pressable>
+                ))}
+              </ScrollView>
+            )
+          ) : tab === 'gifs' ? (
             <View style={styles.gifGrid}>
               {BUILTIN_GIFS.map((g) => (
                 <Pressable key={g.id} onPress={() => sendBuiltin(g.id)} style={styles.gifCell}>

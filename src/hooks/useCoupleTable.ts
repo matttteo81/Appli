@@ -15,7 +15,8 @@ type TableName =
   | 'memories'
   | 'wishes'
   | 'love_notes'
-  | 'events';
+  | 'events'
+  | 'saved_gifs';
 
 /**
  * Charge les lignes d'une table pour le couple courant et se met à jour

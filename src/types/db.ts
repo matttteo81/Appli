@@ -78,6 +78,14 @@ export type Word = {
   created_at: string;
 };
 
+export type SavedGif = {
+  id: string;
+  couple_id: string;
+  author_id: string | null;
+  url: string;
+  created_at: string;
+};
+
 export type Memory = {
   id: string;
   couple_id: string;
@@ -292,6 +300,7 @@ export type Database = {
       events: TableDef<CoupleEvent>;
       game_responses: TableDef<GameResponse>;
       watch_sessions: TableDef<WatchSession>;
+      saved_gifs: TableDef<SavedGif>;
     };
     Views: Record<string, never>;
     Functions: {
