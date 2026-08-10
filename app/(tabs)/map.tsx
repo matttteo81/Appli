@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import { Image } from 'expo-image';
-import { Button, EmptyState, Input, Screen, ThemedText } from '../../src/components/ui';
+import { EmptyState, Input, Screen, ThemedText } from '../../src/components/ui';
 import { ErrorBoundary } from '../../src/components/ErrorBoundary';
 import { fetchWeather } from '../../src/lib/weather';
 import { colors } from '../../src/theme/colors';
@@ -255,15 +255,21 @@ export default function MapScreen() {
         ) : null}
       </View>
 
-      {/* Contrôles position */}
+      {/* Contrôles position (pastilles compactes) */}
       <View style={styles.bottomBar} pointerEvents="box-none">
-        <Button
-          title={locating ? 'Localisation…' : '📍 Ma position exacte'}
+        <Pressable
           onPress={useExactLocation}
-          loading={locating}
-        />
-        <Pressable onPress={() => setPickerOpen(true)} style={styles.cityBtn}>
-          <Text style={styles.cityBtnText}>Ou choisir une ville</Text>
+          disabled={locating}
+          style={[styles.miniBtn, styles.miniPrimary, locating && { opacity: 0.7 }]}
+        >
+          {locating ? (
+            <ActivityIndicator color={colors.encre} size="small" />
+          ) : (
+            <Text style={styles.miniPrimaryText}>📍 Ma position exacte</Text>
+          )}
+        </Pressable>
+        <Pressable onPress={() => setPickerOpen(true)} style={[styles.miniBtn, styles.miniGhost]}>
+          <Text style={styles.miniGhostText}>Ou choisir une ville</Text>
         </Pressable>
       </View>
 
@@ -368,19 +374,27 @@ const styles = StyleSheet.create({
   bottomBar: {
     position: 'absolute',
     bottom: spacing.lg,
-    left: spacing.lg,
-    right: spacing.lg,
-  },
-  cityBtn: {
-    marginTop: spacing.sm,
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    paddingVertical: 12,
+    gap: 8,
+  },
+  miniBtn: {
     borderRadius: radius.pill,
+    paddingVertical: 9,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 38,
+  },
+  miniPrimary: { backgroundColor: colors.ambre },
+  miniPrimaryText: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.encre },
+  miniGhost: {
     backgroundColor: 'rgba(27,27,58,0.6)',
     borderWidth: 1,
     borderColor: colors.bordureClaire,
   },
-  cityBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.creme },
+  miniGhostText: { fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.creme },
   cityRow: {
     flexDirection: 'row',
     alignItems: 'center',
