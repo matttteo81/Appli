@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   Platform,
@@ -21,7 +21,6 @@ import { CountdownsCard } from '../../src/components/CountdownsCard';
 import { colors } from '../../src/theme/colors';
 import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useAuth } from '../../src/store/auth';
-import { distanceKm } from '../../src/lib/geo';
 import { MOODS } from '../../src/lib/moods';
 import { fetchWeather, Weather } from '../../src/lib/weather';
 import { supabase } from '../../src/lib/supabase';
@@ -138,17 +137,6 @@ export default function Home() {
     };
   }, [couple?.together_photo_path]);
 
-  const distance = useMemo(() => {
-    if (
-      profile?.city_lat != null &&
-      profile?.city_lng != null &&
-      partner?.city_lat != null &&
-      partner?.city_lng != null
-    ) {
-      return distanceKm(profile.city_lat, profile.city_lng, partner.city_lat, partner.city_lng);
-    }
-    return null;
-  }, [profile, partner]);
 
   const together = useElapsed(couple?.together_since ?? null);
 
@@ -349,23 +337,6 @@ export default function Home() {
             </View>
           </View>
 
-          {/* Distance */}
-          <Card>
-            <ThemedText variant="label" color={colors.texteGris}>
-              DISTANCE ENTRE VOUS
-            </ThemedText>
-            {distance != null ? (
-              <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
-                <Text style={styles.bigNumber}>{distance.toLocaleString('fr-FR')}</Text>
-                <Text style={styles.unit}>km</Text>
-              </View>
-            ) : (
-              <ThemedText variant="body" color={colors.texteGris} style={{ marginTop: 6 }}>
-                Choisissez chacun votre ville (onglet Carte 🗺️).
-              </ThemedText>
-            )}
-          </Card>
-
           {/* Comptes à rebours multiples */}
           <CountdownsCard />
 
@@ -549,8 +520,6 @@ const styles = StyleSheet.create({
     marginVertical: spacing.md,
   },
   codeText: { fontFamily: fonts.monoMedium, fontSize: 34, letterSpacing: 6, color: colors.ambre },
-  bigNumber: { fontFamily: fonts.monoMedium, fontSize: 44, color: colors.encre },
-  unit: { fontFamily: fonts.bodyMedium, fontSize: 18, color: colors.texteGris, marginBottom: 10 },
   countRow: { flexDirection: 'row', gap: spacing.md, marginTop: 8 },
   countUnit: { alignItems: 'center' },
   countValue: { fontFamily: fonts.monoMedium, fontSize: 36, color: colors.prune },
