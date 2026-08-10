@@ -216,15 +216,20 @@ export function EmptyState({
 export function ScreenHeader({
   title,
   subtitle,
+  right,
 }: {
   title: string;
   subtitle?: string;
+  right?: React.ReactNode;
 }) {
   return (
     <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
-      <ThemedText variant="display" color={colors.encre}>
-        {title}
-      </ThemedText>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <ThemedText variant="display" color={colors.encre}>
+          {title}
+        </ThemedText>
+        {right ?? null}
+      </View>
       {subtitle ? (
         <ThemedText
           variant="body"

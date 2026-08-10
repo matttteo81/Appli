@@ -34,6 +34,8 @@ import { BUILTIN_GIFS, gifSource } from '../../src/lib/gifs';
 import { detectLang, readerLang, translateText } from '../../src/lib/translate';
 import { MessagesSkeleton } from '../../src/components/Skeleton';
 import { scheduleMissYouReminder } from '../../src/lib/missYouReminder';
+import { sendAttention } from '../../src/lib/nudges';
+import { toast } from '../../src/store/toast';
 
 const MSG_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
 
@@ -69,6 +71,30 @@ export default function Messages() {
   const [actionMsg, setActionMsg] = useState<Message | null>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [pending, setPending] = useState<Message[]>([]);
+  const [missSending, setMissSending] = useState(false);
+
+  // Bouton « Tu me manques » du header : envoie une notification à ta moitié.
+  const sendMissYou = async () => {
+    if (missSending) return;
+    if (!couple || !profile || !partner) {
+      Alert.alert('Ta moitié n’est pas reliée', 'Partagez votre code de couple depuis l’accueil pour vous relier.');
+      return;
+    }
+    setMissSending(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      await sendAttention({
+        coupleId: couple.id, fromId: profile.id, fromName: profile.display_name,
+        toId: partner.id, message: 'Tu me manques',
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      toast('« Tu me manques » envoyé 💛');
+    } catch {
+      Alert.alert('Oups', "L'envoi a échoué. Vérifie ta connexion.");
+    } finally {
+      setMissSending(false);
+    }
+  };
 
   // Un message optimiste « correspond » à un vrai message serveur (même auteur,
   // même texte, à quelques secondes près) → on retire alors le doublon local.
@@ -208,7 +234,14 @@ export default function Messages() {
 
   return (
     <Screen edges={['top']}>
-      <ScreenHeader title="Messages" subtitle="Votre fil de discussion" />
+      <ScreenHeader
+        title="Messages"
+        right={
+          <Pressable onPress={sendMissYou} disabled={missSending} style={styles.missBtn}>
+            <Text style={styles.missBtnText}>🤍 Tu me manques</Text>
+          </Pressable>
+        }
+      />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -260,38 +293,34 @@ export default function Messages() {
                       </View>
                     ) : null}
 
-                    {src ? (
-                      <View style={[styles.gifWrap, { alignSelf: mine ? 'flex-end' : 'flex-start' }]}>
-                        <Image source={src} style={styles.gif} contentFit="cover" />
-                        <Text style={[styles.gifTime, { color: colors.texteGris }]}>
-                          {formatTime(item.created_at)}
-                        </Text>
-                      </View>
-                    ) : (
-                      <View
-                        style={[
-                          styles.bubble,
-                          mine ? styles.mine : styles.theirs,
-                          { alignSelf: mine ? 'flex-end' : 'flex-start' },
-                        ]}
-                      >
-                        <Text style={[styles.body, { color: mine ? colors.creme : colors.encre }]}>
-                          {item.body}
-                        </Text>
-                        <Text style={[styles.time, { color: mine ? 'rgba(251,246,239,0.7)' : colors.texteGris }]}>
-                          {formatTime(item.created_at)}
-                        </Text>
-                      </View>
-                    )}
+                    <View style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '100%' }}>
+                      {src ? (
+                        <View style={styles.gifWrap}>
+                          <Image source={src} style={styles.gif} contentFit="cover" />
+                          <Text style={[styles.gifTime, { color: colors.texteGris }]}>
+                            {formatTime(item.created_at)}
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={[styles.bubble, mine ? styles.mine : styles.theirs]}>
+                          <Text style={[styles.body, { color: mine ? colors.creme : colors.encre }]}>
+                            {item.body}
+                          </Text>
+                          <Text style={[styles.time, { color: mine ? 'rgba(251,246,239,0.7)' : colors.texteGris }]}>
+                            {formatTime(item.created_at)}
+                          </Text>
+                        </View>
+                      )}
 
-                    {/* Réactions posées sur le message */}
-                    {reactionEmojis.length > 0 ? (
-                      <View style={[styles.reactionsRow, { alignSelf: mine ? 'flex-end' : 'flex-start' }]}>
-                        {reactionEmojis.map((e, i) => (
-                          <Text key={i} style={styles.reactionBadge}>{e}</Text>
-                        ))}
-                      </View>
-                    ) : null}
+                      {/* Réaction ancrée au coin bas-droit de la bulle */}
+                      {reactionEmojis.length > 0 ? (
+                        <View style={styles.reactionBadge}>
+                          {reactionEmojis.map((e, i) => (
+                            <Text key={i} style={styles.reactionEmoji}>{e}</Text>
+                          ))}
+                        </View>
+                      ) : null}
+                    </View>
 
                     {/* Traduction (si le message n'est pas déjà dans ta langue) */}
                     {item.body && detectLang(item.body) !== reader ? (
@@ -467,18 +496,29 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   replySnippetText: { fontFamily: fonts.bodyRegular, fontSize: 12, color: colors.texteGris },
-  reactionsRow: {
+  reactionBadge: {
+    position: 'absolute',
+    bottom: -8,
+    right: -4,
     flexDirection: 'row',
     gap: 2,
-    marginTop: -6,
     backgroundColor: colors.creme,
     borderRadius: 999,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
     borderWidth: 1,
     borderColor: colors.bordure,
   },
-  reactionBadge: { fontSize: 13 },
+  reactionEmoji: { fontSize: 12 },
+  missBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.corail,
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  missBtnText: { fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.creme },
   translateLink: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.corail, marginTop: 4 },
   translated: {
     backgroundColor: colors.cremeDoux,
