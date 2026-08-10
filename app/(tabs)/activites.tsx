@@ -14,8 +14,7 @@ const ACTIVITIES: {
   color: string;
   dark?: boolean;
 }[] = [
-  { route: '/games', emoji: '🎮', label: 'Jeux à deux', sub: 'Quiz, préférences, tu préfères…', color: colors.prune },
-  { route: '/farm', emoji: '🐾', label: 'Notre ferme', sub: 'Vos animaux à élever ensemble', color: colors.sauge, dark: true },
+  { route: '/games', emoji: '🎮', label: 'Jeux à deux', sub: 'Ferme, dessine & devine, quiz…', color: colors.prune },
   { route: '/ensemble', emoji: '🍿', label: 'Ciné à deux', sub: 'Un film synchronisé', color: colors.corail },
   { route: '/dessin', emoji: '✏️', label: 'Dessin partagé', sub: 'Une toile commune, en temps réel', color: colors.sauge, dark: true },
   { route: '/amour', emoji: '💞', label: 'Langages de l’amour', sub: 'Le test de couple', color: colors.ambre, dark: true },
