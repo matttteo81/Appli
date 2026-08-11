@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { decode } from 'base64-arraybuffer';
 import { gpsFromExif } from '../../src/lib/exifgps';
@@ -56,6 +57,21 @@ export default function Album() {
   const [caption, setCaption] = useState('');
   const [viewer, setViewer] = useState<Photo | null>(null);
   const [pendingChallenge, setPendingChallenge] = useState<string | null>(null);
+  const [dayOpen, setDayOpen] = useState(true);
+
+  // Mémorise l'état plié/déplié du défi « journée à deux ».
+  useEffect(() => {
+    AsyncStorage.getItem('fil_album_day_open').then((v) => {
+      if (v === '0') setDayOpen(false);
+    });
+  }, []);
+  const toggleDay = () => {
+    setDayOpen((o) => {
+      const next = !o;
+      AsyncStorage.setItem('fil_album_day_open', next ? '1' : '0');
+      return next;
+    });
+  };
 
   const dayKey = todayKey();
   // Photos de la journée, rangées par créneau : { slotKey: { mine, theirs } }
@@ -176,11 +192,16 @@ export default function Album() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.prune} />}
         ListHeaderComponent={
           <View style={styles.routineCard}>
-            <Text style={styles.challengeTag}>📸 VOTRE JOURNÉE À DEUX</Text>
-            <ThemedText variant="body" color={colors.cremeDoux} style={{ marginTop: 2, marginBottom: spacing.sm }}>
-              Immortalisez chaque moment, chacun de votre côté 💛
-            </ThemedText>
-            {DAY_SLOTS.map((slot) => {
+            <Pressable onPress={toggleDay} style={styles.routineHead}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.challengeTag}>📸 VOTRE JOURNÉE À DEUX</Text>
+                <ThemedText variant="body" color={colors.cremeDoux} style={{ marginTop: 2 }}>
+                  {dayOpen ? 'Immortalisez chaque moment, chacun de votre côté 💛' : 'Touche pour dérouler les moments du jour'}
+                </ThemedText>
+              </View>
+              <Text style={styles.routineChevron}>{dayOpen ? '⌃' : '⌄'}</Text>
+            </Pressable>
+            {dayOpen && DAY_SLOTS.map((slot) => {
               const mine = dayPhotos[slot.key]?.mine;
               const theirs = dayPhotos[slot.key]?.theirs;
               return (
@@ -332,6 +353,17 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.lg,
     marginBottom: spacing.md,
+  },
+  routineHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  routineChevron: {
+    fontSize: 22,
+    color: colors.cremeDoux,
+    fontWeight: '700',
+    paddingHorizontal: 4,
   },
   challengeTag: {
     fontFamily: fonts.bodySemiBold,
