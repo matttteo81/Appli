@@ -19,6 +19,7 @@ import { useCoupleTable } from '../src/hooks/useCoupleTable';
 import { useAuth } from '../src/store/auth';
 import { supabase } from '../src/lib/supabase';
 import { markSeen } from '../src/lib/homeBadges';
+import { pushToPartner } from '../src/lib/push';
 import type { Wish } from '../src/types/db';
 
 export default function Wishlist() {
@@ -41,6 +42,7 @@ export default function Wishlist() {
     if (!t || !couple || !profile) return;
     setText('');
     await supabase.from('wishes').insert({ couple_id: couple.id, author_id: profile.id, text: t });
+    pushToPartner(partner?.id, `✨ ${profile.display_name}`, `a ajouté « ${t} » à votre liste`);
   };
 
   const toggle = async (w: Wish) => {

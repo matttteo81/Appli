@@ -20,6 +20,7 @@ import { useAuth } from '../src/store/auth';
 import { supabase } from '../src/lib/supabase';
 import { syncEventReminders } from '../src/lib/reminders';
 import { markSeen } from '../src/lib/homeBadges';
+import { pushToPartner } from '../src/lib/push';
 import type { CoupleEvent } from '../src/types/db';
 
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
@@ -48,6 +49,7 @@ export default function Agenda() {
   const router = useRouter();
   const couple = useAuth((s) => s.couple);
   const profile = useAuth((s) => s.profile);
+  const partner = useAuth((s) => s.partner);
   const { rows, loading } = useCoupleTable<CoupleEvent>('events', 'event_date', true);
   useEffect(() => { markSeen('agenda'); }, []);
 
@@ -123,6 +125,7 @@ export default function Agenda() {
         : null,
       note: note.trim() || null,
     });
+    pushToPartner(partner?.id, `📅 ${profile.display_name}`, `a ajouté « ${title.trim() || type.label} » à l’agenda`);
     setSaving(false);
     setOpen(false);
     setSelected(iso(date));

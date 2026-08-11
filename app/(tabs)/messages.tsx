@@ -36,6 +36,7 @@ import { detectLang, readerLang, translateText } from '../../src/lib/translate';
 import { MessagesSkeleton } from '../../src/components/Skeleton';
 import { scheduleMissYouReminder } from '../../src/lib/missYouReminder';
 import { sendAttention } from '../../src/lib/nudges';
+import { pushToPartner } from '../../src/lib/push';
 import { toast } from '../../src/store/toast';
 
 const MSG_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
@@ -166,6 +167,8 @@ export default function Messages() {
       setPending((p) => p.filter((m) => m.id !== temp.id));
       setText(body);
       Alert.alert('Oups', "Ton message n'a pas pu être envoyé.");
+    } else {
+      pushToPartner(partner?.id, `💬 ${profile.display_name}`, body);
     }
   };
 
@@ -188,6 +191,7 @@ export default function Messages() {
       body: null,
       image_url: imageUrl,
     });
+    pushToPartner(partner?.id, `💬 ${profile.display_name}`, '🎞️ t’a envoyé un GIF');
   };
 
   const sendBuiltin = async (id: string) => {

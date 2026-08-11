@@ -30,6 +30,7 @@ import { radius, spacing } from '../../src/theme/typography';
 import { useCoupleTable } from '../../src/hooks/useCoupleTable';
 import { useAuth } from '../../src/store/auth';
 import { supabase } from '../../src/lib/supabase';
+import { pushToPartner } from '../../src/lib/push';
 import type { Photo } from '../../src/types/db';
 import { DAY_SLOTS, slotTag, todayKey } from '../../src/lib/dayphotos';
 import { fonts } from '../../src/theme/typography';
@@ -170,6 +171,7 @@ export default function Album() {
         lat: pending.lat,
         lng: pending.lng,
       });
+      pushToPartner(partner?.id, `📸 ${profile.display_name}`, 'a ajouté une photo à l’album 💛');
       setPending(null);
       setCaption('');
       setPendingChallenge(null);

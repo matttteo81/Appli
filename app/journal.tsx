@@ -19,6 +19,7 @@ import { decode } from 'base64-arraybuffer';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { gpsFromExif } from '../src/lib/exifgps';
 import { markSeen } from '../src/lib/homeBadges';
+import { pushToPartner } from '../src/lib/push';
 import { Button, EmptyState, Input, Screen, ThemedText } from '../src/components/ui';
 import { colors } from '../src/theme/colors';
 import { fonts, radius, spacing } from '../src/theme/typography';
@@ -39,6 +40,7 @@ export default function Journal() {
   const router = useRouter();
   const couple = useAuth((s) => s.couple);
   const profile = useAuth((s) => s.profile);
+  const partner = useAuth((s) => s.partner);
   const { rows, loading, reload } = useCoupleTable<Memory>('memories', 'memory_date', false);
   useEffect(() => { markSeen('journal'); }, []);
   const [refreshing, setRefreshing] = useState(false);
@@ -121,6 +123,7 @@ export default function Journal() {
         lat: photo?.lat ?? null,
         lng: photo?.lng ?? null,
       });
+      pushToPartner(partner?.id, `📔 ${profile.display_name}`, 'a ajouté un souvenir au journal 💛');
       setOpen(false);
       reset();
     } catch (e: any) {

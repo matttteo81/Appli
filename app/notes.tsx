@@ -22,6 +22,7 @@ import { useCoupleTable } from '../src/hooks/useCoupleTable';
 import { useAuth } from '../src/store/auth';
 import { supabase } from '../src/lib/supabase';
 import { markSeen } from '../src/lib/homeBadges';
+import { pushToPartner } from '../src/lib/push';
 import type { LoveNote } from '../src/types/db';
 
 function frDate(iso: string) {
@@ -59,6 +60,11 @@ export default function Notes() {
       body: t,
       reveal_at: scheduled ? revealAt.toISOString() : null,
     });
+    pushToPartner(
+      partner?.id,
+      `💌 ${profile.display_name}`,
+      scheduled ? 't’a laissé une surprise scellée 🔒' : 't’a envoyé un petit mot 💌',
+    );
     setSending(false);
     setBody('');
     setScheduled(false);
