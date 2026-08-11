@@ -1,14 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 
-/** Les sections « À deux » de l'accueil qui portent un badge de nouveautés. */
-export type HomeSection = 'wishlist' | 'agenda' | 'notes' | 'journal';
+/** Les sections qui portent un badge de nouveautés (accueil + onglets). */
+export type HomeSection = 'wishlist' | 'agenda' | 'notes' | 'journal' | 'messages' | 'album';
 
 const TABLE: Record<HomeSection, string> = {
   wishlist: 'wishes',
   agenda: 'events',
   notes: 'love_notes',
   journal: 'memories',
+  messages: 'messages',
+  album: 'photos',
 };
 
 const seenKey = (s: HomeSection) => `fil_seen_${s}`;
@@ -43,11 +45,24 @@ export async function loadHomeBadges(
   coupleId: string,
   partnerId: string | null | undefined,
 ): Promise<Record<HomeSection, number>> {
-  const empty = { wishlist: 0, agenda: 0, notes: 0, journal: 0 };
+  const empty = { wishlist: 0, agenda: 0, notes: 0, journal: 0, messages: 0, album: 0 };
   if (!partnerId) return empty;
   const sections: HomeSection[] = ['wishlist', 'agenda', 'notes', 'journal'];
   const entries = await Promise.all(
     sections.map(async (s) => [s, await countNew(s, coupleId, partnerId)] as const),
   );
   return { ...empty, ...Object.fromEntries(entries) };
+}
+
+/** Non-lus des onglets (Messages, Album) : contenu ajouté par ta moitié. */
+export async function loadTabBadges(
+  coupleId: string,
+  partnerId: string | null | undefined,
+): Promise<{ messages: number; album: number }> {
+  if (!partnerId) return { messages: 0, album: 0 };
+  const [messages, album] = await Promise.all([
+    countNew('messages', coupleId, partnerId),
+    countNew('album', coupleId, partnerId),
+  ]);
+  return { messages, album };
 }

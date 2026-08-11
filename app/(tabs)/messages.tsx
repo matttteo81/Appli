@@ -33,8 +33,11 @@ import { supabase } from '../../src/lib/supabase';
 import type { Message, SavedGif } from '../../src/types/db';
 import { BUILTIN_GIFS, gifSource } from '../../src/lib/gifs';
 import { detectLang, readerLang, translateText } from '../../src/lib/translate';
+import { useFocusEffect } from 'expo-router';
 import { MessagesSkeleton } from '../../src/components/Skeleton';
 import { scheduleMissYouReminder } from '../../src/lib/missYouReminder';
+import { markSeen } from '../../src/lib/homeBadges';
+import { useBadgeRefresh } from '../../src/store/badges';
 import { sendAttention } from '../../src/lib/nudges';
 import { pushToPartner } from '../../src/lib/push';
 import { toast } from '../../src/store/toast';
@@ -75,6 +78,14 @@ export default function Messages() {
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [pending, setPending] = useState<Message[]>([]);
   const [missSending, setMissSending] = useState(false);
+
+  // À l'ouverture de Messages : on marque comme lus + on efface la pastille.
+  useFocusEffect(
+    React.useCallback(() => {
+      markSeen('messages');
+      useBadgeRefresh.getState().refresh();
+    }, []),
+  );
 
   // Bouton « Tu me manques » du header : envoie une notification à ta moitié.
   const sendMissYou = async () => {

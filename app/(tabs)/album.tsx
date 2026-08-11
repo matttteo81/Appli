@@ -14,6 +14,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { decode } from 'base64-arraybuffer';
 import { gpsFromExif } from '../../src/lib/exifgps';
@@ -31,6 +32,8 @@ import { useCoupleTable } from '../../src/hooks/useCoupleTable';
 import { useAuth } from '../../src/store/auth';
 import { supabase } from '../../src/lib/supabase';
 import { pushToPartner } from '../../src/lib/push';
+import { markSeen } from '../../src/lib/homeBadges';
+import { useBadgeRefresh } from '../../src/store/badges';
 import type { Photo } from '../../src/types/db';
 import { DAY_SLOTS, slotTag, todayKey } from '../../src/lib/dayphotos';
 import { fonts } from '../../src/theme/typography';
@@ -73,6 +76,14 @@ export default function Album() {
       return next;
     });
   };
+
+  // À l'ouverture de l'Album : on marque comme vu + on efface la pastille.
+  useFocusEffect(
+    React.useCallback(() => {
+      markSeen('album');
+      useBadgeRefresh.getState().refresh();
+    }, []),
+  );
 
   const dayKey = todayKey();
   // Photos de la journée, rangées par créneau : { slotKey: { mine, theirs } }

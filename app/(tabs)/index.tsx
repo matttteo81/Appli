@@ -60,7 +60,7 @@ export default function Home() {
   const [partnerWeather, setPartnerWeather] = useState<Weather | null>(null);
   const [streak, setStreak] = useState<number | null>(null);
   const [badges, setBadges] = useState<Record<HomeSection, number>>({
-    wishlist: 0, agenda: 0, notes: 0, journal: 0,
+    wishlist: 0, agenda: 0, notes: 0, journal: 0, messages: 0, album: 0,
   });
 
   // Badges de nouveautés (ce que ta moitié a ajouté depuis ta dernière visite),
