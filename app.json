@@ -12,9 +12,6 @@
       "supportsTablet": true,
       "appleTeamId": "JK46G84XCP",
       "bundleIdentifier": "com.matteo81.fil",
-      "entitlements": {
-        "com.apple.security.application-groups": ["group.com.matteo81.fil.widgets"]
-      },
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Fil a besoin d'accéder à tes photos pour les ajouter à votre album partagé.",
         "NSCameraUsageDescription": "Fil peut utiliser l'appareil photo pour ajouter des photos à votre album partagé.",
@@ -102,8 +99,7 @@
             "deploymentTarget": "17.0"
           }
         }
-      ],
-      "@bacons/apple-targets"
+      ]
     ],
     "extra": {
       "eas": {
