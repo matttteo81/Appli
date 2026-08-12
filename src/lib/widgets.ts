@@ -7,7 +7,7 @@ import { ExtensionStorage } from '@bacons/apple-targets';
  * à iOS de rafraîchir les widgets. Sans module natif (Expo Go, build sans
  * widget), les appels sont des no-op : aucun risque de plantage.
  */
-const APP_GROUP = 'group.com.app.fil.widgets';
+const APP_GROUP = 'group.com.matteo81.fil.widgets';
 const storage = new ExtensionStorage(APP_GROUP);
 
 export function syncWidgets(data: {

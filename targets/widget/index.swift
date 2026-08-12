@@ -4,7 +4,7 @@ import SwiftUI
 // MARK: - Données partagées (App Group écrit par l'app React Native)
 
 enum Shared {
-  static let suite = "group.com.app.fil.widgets"
+  static let suite = "group.com.matteo81.fil.widgets"
   static var defaults: UserDefaults? { UserDefaults(suiteName: suite) }
   static func str(_ key: String) -> String? {
     guard let v = defaults?.string(forKey: key), !v.isEmpty else { return nil }

@@ -11,9 +11,9 @@
     "ios": {
       "supportsTablet": true,
       "appleTeamId": "JK46G84XCP",
-      "bundleIdentifier": "com.app.fil",
+      "bundleIdentifier": "com.matteo81.fil",
       "entitlements": {
-        "com.apple.security.application-groups": ["group.com.app.fil.widgets"]
+        "com.apple.security.application-groups": ["group.com.matteo81.fil.widgets"]
       },
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Fil a besoin d'accéder à tes photos pour les ajouter à votre album partagé.",
@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "package": "com.app.fil",
+      "package": "com.matteo81.fil",
       "adaptiveIcon": {
         "backgroundColor": "#1B1B3A",
         "foregroundImage": "./assets/android-icon-foreground.png",
