@@ -27,33 +27,41 @@ export function useCoupleTable<T extends { id: string }>(
   orderColumn = 'created_at',
   ascending = false,
 ) {
-  const couple = useAuth((s) => s.couple);
+  // On dépend de l'IDENTIFIANT du couple (une chaîne), pas de l'objet couple :
+  // ainsi l'abonnement temps réel ne se recrée pas à chaque fois que l'objet
+  // couple change de référence. Cela évite le va-et-vient d'abonnements
+  // (souscription/désinscription en boucle) qui déstabilisait l'application.
+  const coupleId = useAuth((s) => s.couple?.id);
   const [rows, setRows] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!couple) return;
+    if (!coupleId) return;
     const { data } = await supabase
       .from(table)
       .select('*')
-      .eq('couple_id', couple.id)
+      .eq('couple_id', coupleId)
       .order(orderColumn, { ascending });
     setRows((data ?? []) as unknown as T[]);
     setLoading(false);
-  }, [couple, table, orderColumn, ascending]);
+  }, [coupleId, table, orderColumn, ascending]);
 
   useEffect(() => {
-    if (!couple) return;
+    if (!coupleId) return;
     load();
+    // Nom de canal unique par instance de hook : deux écrans qui écoutent la
+    // même table (ex. photos sur la Carte et l'Album) ne se marchent plus
+    // dessus, et removeChannel ne supprime plus le mauvais canal.
+    const suffix = Math.random().toString(36).slice(2, 8);
     const channel = supabase
-      .channel(`${table}-${couple.id}`)
+      .channel(`${table}-${coupleId}-${suffix}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table,
-          filter: `couple_id=eq.${couple.id}`,
+          filter: `couple_id=eq.${coupleId}`,
         },
         () => load(),
       )
@@ -61,7 +69,10 @@ export function useCoupleTable<T extends { id: string }>(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [couple, table, load]);
+    // On ne dépend QUE de coupleId et table : l'abonnement reste stable tant
+    // que le couple ne change pas réellement.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coupleId, table]);
 
   return { rows, loading, reload: load };
 }
