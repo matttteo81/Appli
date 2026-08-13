@@ -58,7 +58,6 @@ export function AnimatedSplash({
           loop={false}
           speed={1.5}
           resizeMode="contain"
-          renderMode="HARDWARE"
           cacheComposition
           onAnimationFinish={finish}
           style={styles.lottie}

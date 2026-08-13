@@ -69,6 +69,13 @@ export default function RootLayout() {
     initLock();
   }, [init, initLock]);
 
+  // On cache le splash natif dès le tout premier rendu JS : l'animation avion +
+  // FIL (fond beige, identique) prend le relais IMMÉDIATEMENT. L'appli démarre
+  // donc directement sur l'animation, sans écran noir ni logo intermédiaire.
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
   // Filet de sécurité : si l'animation ne se terminait jamais, on monte quand
   // même l'app au bout de 5 s.
   useEffect(() => {
@@ -78,22 +85,8 @@ export default function RootLayout() {
     }
   }, [mountApp]);
 
-  // Dès que les polices et l'auth sont prêtes, on cache le splash natif ;
-  // l'animation avion + FIL (AnimatedSplash) prend alors le relais.
-  useEffect(() => {
-    if (fontsLoaded && initialized) {
-      SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [fontsLoaded, initialized]);
-
-  // Tant que ce n'est pas prêt, on ne rend rien : le splash natif (fond crème)
-  // reste affiché, sans écran de chargement intermédiaire.
-  if (!fontsLoaded || !initialized) {
-    return null;
-  }
-
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#D8C7AC' }}>
       <SafeAreaProvider>
         <StatusBar style="auto" />
         {mountApp && (

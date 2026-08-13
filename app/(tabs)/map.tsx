@@ -50,10 +50,50 @@ function fitOf(coords: LatLng[]): { center: LatLng; zoom: number } {
 }
 
 function frShort(iso: string) {
-  return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+  try {
+    return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch {
+    return '';
+  }
+}
+
+/** Formatage du nombre de km, tolérant aux moteurs sans Intl complet. */
+function kmLabel(km: number): string {
+  try {
+    return km.toLocaleString('fr-FR');
+  } catch {
+    return String(Math.round(km));
+  }
+}
+
+/**
+ * Repli plein écran si l'écran Carte lève une erreur au rendu : on affiche un
+ * message doux au lieu de faire tomber toute l'application.
+ */
+function MapScreenFallback() {
+  return (
+    <Screen edges={['top']}>
+      <View style={{ flex: 1, justifyContent: 'center' }}>
+        <EmptyState
+          emoji="🗺️"
+          title="Carte momentanément indisponible"
+          subtitle="Réessaie dans un instant. Le reste de l'application fonctionne normalement."
+        />
+      </View>
+    </Screen>
+  );
 }
 
 export default function MapScreen() {
+  // Toute erreur inattendue sur cet écran est rattrapée ici : plus de crash.
+  return (
+    <ErrorBoundary fallback={<MapScreenFallback />}>
+      <MapScreenInner />
+    </ErrorBoundary>
+  );
+}
+
+function MapScreenInner() {
   const profile = useAuth((s) => s.profile);
   const partner = useAuth((s) => s.partner);
   const updateProfile = useAuth((s) => s.updateProfile);
@@ -243,7 +283,7 @@ export default function MapScreen() {
         <View style={styles.distanceBar}>
           <Text style={styles.distanceText} numberOfLines={1}>
             {distance != null
-              ? `✈️  ${distance.toLocaleString('fr-FR')} km vous séparent`
+              ? `✈️  ${kmLabel(distance)} km vous séparent`
               : 'Choisissez vos villes'}
           </Text>
         </View>
