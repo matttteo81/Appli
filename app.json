@@ -50,9 +50,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#D8C7AC",
-          "image": "./assets/icon.png",
-          "imageWidth": 180
+          "backgroundColor": "#D8C7AC"
         }
       ],
       [
@@ -83,13 +81,6 @@
         "expo-audio",
         {
           "microphonePermission": "Fil utilise le micro pour enregistrer tes messages vocaux « Tu me manques »."
-        }
-      ],
-      [
-        "expo-maps",
-        {
-          "requestLocationPermission": true,
-          "locationPermission": "Fil utilise ta position pour te situer sur la carte de vos souvenirs."
         }
       ],
       [

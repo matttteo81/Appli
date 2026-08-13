@@ -59,9 +59,9 @@ export default function RootLayout() {
   const initialized = useAuth((s) => s.initialized);
   const initLock = useLock((s) => s.init);
   const [showSplash, setShowSplash] = useState(true);
-  // On laisse l'animation avion + FIL démarrer sur un thread dégagé avant de
-  // monter l'arbre lourd (navigation, écrans). Cela évite les saccades pendant
-  // la première seconde de l'animation.
+  // On ne monte l'arbre lourd (navigation + écrans) qu'une fois l'animation
+  // avion + FIL terminée : elle joue ainsi sur un thread totalement dégagé,
+  // sans saccade. L'app se met en place derrière le fondu de sortie du splash.
   const [mountApp, setMountApp] = useState(false);
 
   useEffect(() => {
@@ -69,12 +69,14 @@ export default function RootLayout() {
     initLock();
   }, [init, initLock]);
 
+  // Filet de sécurité : si l'animation ne se terminait jamais, on monte quand
+  // même l'app au bout de 5 s.
   useEffect(() => {
-    if (fontsLoaded && initialized && !mountApp) {
-      const t = setTimeout(() => setMountApp(true), 300);
+    if (!mountApp) {
+      const t = setTimeout(() => setMountApp(true), 5000);
       return () => clearTimeout(t);
     }
-  }, [fontsLoaded, initialized, mountApp]);
+  }, [mountApp]);
 
   // Dès que les polices et l'auth sont prêtes, on cache le splash natif ;
   // l'animation avion + FIL (AnimatedSplash) prend alors le relais.
@@ -125,7 +127,12 @@ export default function RootLayout() {
             <Onboarding />
           </>
         )}
-        {showSplash && <AnimatedSplash onDone={() => setShowSplash(false)} />}
+        {showSplash && (
+          <AnimatedSplash
+            onReveal={() => setMountApp(true)}
+            onDone={() => setShowSplash(false)}
+          />
+        )}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

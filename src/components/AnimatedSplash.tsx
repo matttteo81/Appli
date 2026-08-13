@@ -10,7 +10,15 @@ const { width: W } = Dimensions.get('window');
  * Écran de démarrage : l'avion en papier qui trace un cœur (animation Lottie,
  * adaptée à l'écran), puis « FIL » et « loin des yeux près du cœur » en dessous.
  */
-export function AnimatedSplash({ onDone }: { onDone: () => void }) {
+export function AnimatedSplash({
+  onDone,
+  onReveal,
+}: {
+  onDone: () => void;
+  /** Appelé quand l'animation est terminée : le moment idéal pour monter
+   *  l'application (elle apparaît derrière le fondu de sortie du splash). */
+  onReveal?: () => void;
+}) {
   const container = useRef(new Animated.Value(1)).current;
   const title = useRef(new Animated.Value(0)).current;
   const tagline = useRef(new Animated.Value(0)).current;
@@ -19,7 +27,10 @@ export function AnimatedSplash({ onDone }: { onDone: () => void }) {
   const finish = () => {
     if (done.current) return;
     done.current = true;
-    Animated.timing(container, { toValue: 0, duration: 450, useNativeDriver: true }).start(() => onDone());
+    // On monte l'app maintenant (thread dégagé, l'animation est finie), puis on
+    // fond le splash par-dessus pendant que l'app se met en place derrière.
+    onReveal?.();
+    Animated.timing(container, { toValue: 0, duration: 550, useNativeDriver: true }).start(() => onDone());
   };
 
   useEffect(() => {

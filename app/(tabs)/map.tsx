@@ -24,7 +24,7 @@ import { supabase } from '../../src/lib/supabase';
 import type { Photo, Memory } from '../../src/types/db';
 import type { Pin, PhotoMapHandle } from '../../src/components/PhotoMap';
 
-// Carte native isolée + chargée à la demande (garde expo-maps hors du démarrage).
+// Carte (WebView Leaflet) chargée à la demande, isolée dans son module.
 const PhotoMap = React.lazy(() => import('../../src/components/PhotoMap'));
 
 type LatLng = { latitude: number; longitude: number };
