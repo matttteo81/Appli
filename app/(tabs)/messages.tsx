@@ -41,6 +41,7 @@ import { useBadgeRefresh } from '../../src/store/badges';
 import { sendAttention } from '../../src/lib/nudges';
 import { pushToPartner } from '../../src/lib/push';
 import { toast } from '../../src/store/toast';
+import { VoiceRecorder } from '../../src/components/VoiceRecorder';
 
 const MSG_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
 
@@ -78,6 +79,8 @@ export default function Messages() {
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [pending, setPending] = useState<Message[]>([]);
   const [missSending, setMissSending] = useState(false);
+  const [missOpen, setMissOpen] = useState(false);
+  const [recorderOpen, setRecorderOpen] = useState(false);
 
   // À l'ouverture de Messages : on marque comme lus + on efface la pastille.
   useFocusEffect(
@@ -87,13 +90,21 @@ export default function Messages() {
     }, []),
   );
 
-  // Bouton « Tu me manques » du header : envoie une notification à ta moitié.
+  const notLinked = () =>
+    Alert.alert('Ta moitié n’est pas reliée', 'Partagez votre code de couple depuis l’accueil pour vous relier.');
+
+  // Cœur du header : ouvre un petit choix (texte rapide ou message vocal).
+  const openMiss = () => {
+    if (!couple || !profile || !partner) return notLinked();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setMissOpen(true);
+  };
+
+  // Envoi rapide « Tu me manques » (texte) → notification à ta moitié.
   const sendMissYou = async () => {
     if (missSending) return;
-    if (!couple || !profile || !partner) {
-      Alert.alert('Ta moitié n’est pas reliée', 'Partagez votre code de couple depuis l’accueil pour vous relier.');
-      return;
-    }
+    if (!couple || !profile || !partner) return notLinked();
+    setMissOpen(false);
     setMissSending(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
@@ -108,6 +119,13 @@ export default function Messages() {
     } finally {
       setMissSending(false);
     }
+  };
+
+  // Message vocal personnalisé pour accompagner le « Tu me manques ».
+  const openRecorder = () => {
+    if (!couple || !profile || !partner) return notLinked();
+    setMissOpen(false);
+    setRecorderOpen(true);
   };
 
   // Un message optimiste « correspond » à un vrai message serveur (même auteur,
@@ -309,10 +327,10 @@ export default function Messages() {
         title="Messages"
         right={
           <Pressable
-            onPress={sendMissYou}
+            onPress={openMiss}
             disabled={missSending}
             style={[styles.missBtn, missSending && { opacity: 0.5 }]}
-            accessibilityLabel="Envoyer « Tu me manques » à ta moitié"
+            accessibilityLabel="Envoyer « Tu me manques » à ta moitié, à l’écrit ou en vocal"
           >
             <Text style={styles.missHeart}>🤍</Text>
           </Pressable>
@@ -353,7 +371,7 @@ export default function Messages() {
                   <Pressable
                     onLongPress={() => setActionMsg(item)}
                     delayLongPress={250}
-                    style={{ maxWidth: '80%' }}
+                    style={{ maxWidth: '86%' }}
                   >
                     {/* Extrait du message auquel on répond */}
                     {item.reply_to ? (
@@ -570,6 +588,39 @@ export default function Messages() {
           )}
         </View>
       </Modal>
+
+      {/* Choix « Tu me manques » : texte rapide ou message vocal personnalisé */}
+      <Modal visible={missOpen} transparent animationType="fade" onRequestClose={() => setMissOpen(false)}>
+        <Pressable style={styles.missBackdrop} onPress={() => setMissOpen(false)}>
+          <View style={styles.missSheet}>
+            <Text style={styles.missTitle}>Dis-lui qu’il·elle te manque 💛</Text>
+            <Pressable style={styles.missOption} onPress={sendMissYou} disabled={missSending}>
+              <Text style={styles.missOptionEmoji}>💌</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.missOptionText}>Envoyer « Tu me manques »</Text>
+                <Text style={styles.missOptionSub}>Un message tout simple, en un tap</Text>
+              </View>
+            </Pressable>
+            <Pressable style={styles.missOption} onPress={openRecorder}>
+              <Text style={styles.missOptionEmoji}>🎙️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.missOptionText}>Message vocal</Text>
+                <Text style={styles.missOptionSub}>Enregistre ta voix pour un « tu me manques » personnalisé</Text>
+              </View>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {recorderOpen && couple && profile && partner ? (
+        <VoiceRecorder
+          visible={recorderOpen}
+          onClose={() => setRecorderOpen(false)}
+          couple={couple}
+          profile={profile}
+          partner={partner}
+        />
+      ) : null}
     </Screen>
   );
 }
@@ -581,10 +632,10 @@ function formatTime(iso: string): string {
 const styles = StyleSheet.create({
   bubbleRow: { flexDirection: 'row', marginTop: 6 },
   bubble: {
-    maxWidth: '78%',
+    maxWidth: '100%',
     borderRadius: radius.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
   mine: { backgroundColor: colors.prune, borderBottomRightRadius: 6 },
   theirs: {
@@ -593,8 +644,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.bordure,
   },
-  body: { fontFamily: fonts.bodyRegular, fontSize: 16, lineHeight: 22 },
-  time: { fontFamily: fonts.bodyMedium, fontSize: 10, marginTop: 3, alignSelf: 'flex-end' },
+  body: { fontFamily: fonts.bodyRegular, fontSize: 16, lineHeight: 21 },
+  time: { fontFamily: fonts.bodyMedium, fontSize: 10, marginTop: 1, alignSelf: 'flex-end' },
   gifWrap: { alignItems: 'flex-end' },
   gif: { width: 160, height: 160, borderRadius: radius.lg, backgroundColor: colors.cremeDoux },
   gifTime: { fontFamily: fonts.bodyMedium, fontSize: 10, marginTop: 3 },
@@ -632,6 +683,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   missHeart: { fontSize: 21 },
+  missBackdrop: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  missSheet: {
+    backgroundColor: colors.creme,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  missTitle: {
+    fontFamily: fonts.displaySemiBold,
+    fontSize: 19,
+    color: colors.encre,
+    marginBottom: spacing.xs,
+  },
+  missOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.cremeDoux,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  missOptionEmoji: { fontSize: 28 },
+  missOptionText: { fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.encre },
+  missOptionSub: { fontFamily: fonts.bodyRegular, fontSize: 13, color: colors.texteGris, marginTop: 2 },
   translateLink: { fontFamily: fonts.bodySemiBold, fontSize: 12, color: colors.corail, marginTop: 4 },
   translated: {
     backgroundColor: colors.cremeDoux,

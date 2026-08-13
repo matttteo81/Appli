@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, momentForHour, skyGradients } from '../theme/colors';
-import { fonts } from '../theme/typography';
+import { fonts, radius } from '../theme/typography';
 import { localHour, localTime } from '../lib/geo';
 import type { Weather } from '../lib/weather';
 
@@ -104,7 +104,13 @@ function momentEmoji(m: ReturnType<typeof momentForHour>): string {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', height: 200, position: 'relative' },
+  row: {
+    flexDirection: 'row',
+    height: 176,
+    position: 'relative',
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+  },
   half: {
     flex: 1,
     padding: 18,

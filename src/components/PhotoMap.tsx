@@ -23,6 +23,16 @@ const STYLE_FOR: Record<Pin['kind'], { systemImage: string; tintColor: string }>
 
 export type PhotoMapHandle = AppleMaps.MapView;
 
+/** Une coordonnée est valide si finie et dans les bornes géographiques. */
+function validCoord(lat: number, lng: number): boolean {
+  return (
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    lat >= -90 && lat <= 90 &&
+    lng >= -180 && lng <= 180
+  );
+}
+
 const PhotoMap = React.forwardRef<PhotoMapHandle, {
   center: { latitude: number; longitude: number };
   zoom: number;
@@ -33,22 +43,37 @@ const PhotoMap = React.forwardRef<PhotoMapHandle, {
   /** Affiche le point bleu « ma position » en direct. */
   showUserLocation?: boolean;
 }>(function PhotoMap({ center, zoom, pins, onPinPress, satellite, showUserLocation }, ref) {
+  // On assainit les entrées : MapKit plante si on lui passe une coordonnée ou
+  // un zoom non finis (NaN / Infinity).
+  const safeCenter = validCoord(center?.latitude, center?.longitude)
+    ? center
+    : { latitude: 20, longitude: 0 };
+  const safeZoom = Number.isFinite(zoom) ? Math.max(1, Math.min(20, zoom)) : 2;
+
+  const markers = React.useMemo(
+    () =>
+      pins
+        .filter((p) => validCoord(p.latitude, p.longitude))
+        .map((p) => ({
+          id: p.id,
+          coordinates: { latitude: p.latitude, longitude: p.longitude },
+          title: p.title,
+          ...STYLE_FOR[p.kind],
+        })),
+    [pins],
+  );
+
   return (
     <AppleMaps.View
       ref={ref}
       style={{ flex: 1 }}
-      cameraPosition={{ coordinates: center, zoom }}
+      cameraPosition={{ coordinates: safeCenter, zoom: safeZoom }}
       properties={{
         mapType: satellite ? AppleMaps.MapType.HYBRID : AppleMaps.MapType.STANDARD,
         isMyLocationEnabled: !!showUserLocation,
         selectionEnabled: false,
       }}
-      markers={pins.map((p) => ({
-        id: p.id,
-        coordinates: { latitude: p.latitude, longitude: p.longitude },
-        title: p.title,
-        ...STYLE_FOR[p.kind],
-      }))}
+      markers={markers}
       onMarkerClick={(m) => {
         const pin = pins.find((p) => p.id === m.id);
         if (pin) onPinPress?.(pin);

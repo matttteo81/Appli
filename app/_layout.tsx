@@ -4,7 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { View, ActivityIndicator, AppState } from 'react-native';
+import { AppState } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import { useFonts } from 'expo-font';
 import {
@@ -34,7 +35,11 @@ import { AnimatedSplash } from '../src/components/AnimatedSplash';
 import { supabase } from '../src/lib/supabase';
 import { registerForPushNotifications } from '../src/lib/notifications';
 import { refreshMyLocation } from '../src/lib/autoLocation';
-import { colors } from '../src/theme/colors';
+
+// On garde le splash natif (fond crème) visible jusqu'à ce que les polices et
+// l'auth soient prêtes. Ainsi, aucun « écran bleu » de chargement n'apparaît :
+// on passe directement du splash natif à l'animation avion + FIL.
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -54,58 +59,72 @@ export default function RootLayout() {
   const initialized = useAuth((s) => s.initialized);
   const initLock = useLock((s) => s.init);
   const [showSplash, setShowSplash] = useState(true);
+  // On laisse l'animation avion + FIL démarrer sur un thread dégagé avant de
+  // monter l'arbre lourd (navigation, écrans). Cela évite les saccades pendant
+  // la première seconde de l'animation.
+  const [mountApp, setMountApp] = useState(false);
 
   useEffect(() => {
     init();
     initLock();
   }, [init, initLock]);
 
+  useEffect(() => {
+    if (fontsLoaded && initialized && !mountApp) {
+      const t = setTimeout(() => setMountApp(true), 300);
+      return () => clearTimeout(t);
+    }
+  }, [fontsLoaded, initialized, mountApp]);
+
+  // Dès que les polices et l'auth sont prêtes, on cache le splash natif ;
+  // l'animation avion + FIL (AnimatedSplash) prend alors le relais.
+  useEffect(() => {
+    if (fontsLoaded && initialized) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded, initialized]);
+
+  // Tant que ce n'est pas prêt, on ne rend rien : le splash natif (fond crème)
+  // reste affiché, sans écran de chargement intermédiaire.
   if (!fontsLoaded || !initialized) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: colors.encre,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <ActivityIndicator color={colors.ambre} size="large" />
-      </View>
-    );
+    return null;
   }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <StatusBar style="auto" />
-        <AuthGate />
-        <NotificationBridge />
-        <LocationBridge />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="pair" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="ensemble" />
-          <Stack.Screen name="dessin" />
-          <Stack.Screen name="souvenirs" />
-          <Stack.Screen name="journal" />
-          <Stack.Screen name="wishlist" />
-          <Stack.Screen name="notes" />
-          <Stack.Screen name="agenda" />
-          <Stack.Screen name="amour" />
-          <Stack.Screen name="carte-photos" />
-          <Stack.Screen name="parametres" />
-          <Stack.Screen name="confidentialite" />
-          <Stack.Screen
-            name="nudge"
-            options={{ presentation: 'transparentModal', animation: 'fade' }}
-          />
-        </Stack>
-        <LockGate />
-        <Toast />
-        <OfflineBanner />
-        <Onboarding />
+        {mountApp && (
+          <>
+            <AuthGate />
+            <NotificationBridge />
+            <LocationBridge />
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="pair" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="ensemble" />
+              <Stack.Screen name="dessin" />
+              <Stack.Screen name="souvenirs" />
+              <Stack.Screen name="journal" />
+              <Stack.Screen name="wishlist" />
+              <Stack.Screen name="notes" />
+              <Stack.Screen name="agenda" />
+              <Stack.Screen name="amour" />
+              <Stack.Screen name="carte-photos" />
+              <Stack.Screen name="parametres" />
+              <Stack.Screen name="confidentialite" />
+              <Stack.Screen
+                name="nudge"
+                options={{ presentation: 'transparentModal', animation: 'fade' }}
+              />
+            </Stack>
+            <LockGate />
+            <Toast />
+            <OfflineBanner />
+            <Onboarding />
+          </>
+        )}
         {showSplash && <AnimatedSplash onDone={() => setShowSplash(false)} />}
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -64,7 +64,19 @@ export default function MapScreen() {
   const [query, setQuery] = useState('');
   const [locating, setLocating] = useState(false);
   const [avatarUrls, setAvatarUrls] = useState<{ me?: string; partner?: string }>({});
+  // Le point bleu « ma position » n'est activé qu'une fois la permission
+  // accordée : activer la localisation MapKit sans autorisation peut faire
+  // planter la carte sur iOS.
+  const [canShowLocation, setCanShowLocation] = useState(false);
   const mapRef = useRef<PhotoMapHandle>(null);
+
+  useEffect(() => {
+    let active = true;
+    Location.getForegroundPermissionsAsync()
+      .then((p) => { if (active) setCanShowLocation(p.granted); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   const meHasCity = profile?.city_lat != null && profile?.city_lng != null;
   const partnerHasCity = partner?.city_lat != null && partner?.city_lng != null;
@@ -161,6 +173,7 @@ export default function MapScreen() {
         Alert.alert('Localisation refusée', 'Autorise la localisation dans les réglages pour utiliser ta position exacte.');
         return;
       }
+      setCanShowLocation(true);
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const { latitude, longitude } = pos.coords;
       let cityName = 'Ma position';
@@ -218,7 +231,7 @@ export default function MapScreen() {
               zoom={initial.zoom}
               pins={pins}
               satellite
-              showUserLocation
+              showUserLocation={canShowLocation}
               onPinPress={() => {}}
             />
           </Suspense>

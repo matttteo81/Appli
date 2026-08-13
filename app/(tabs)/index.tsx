@@ -192,25 +192,26 @@ export default function Home() {
       ) : null}
 
       <ScrollView contentContainerStyle={{ paddingBottom: 150 }}>
-        <TwinSky
-          streak={streak}
-          me={{
-            name: profile?.display_name ?? 'Moi',
-            city: profile?.city_name ?? null,
-            timezone: profile?.timezone ?? null,
-            weather: myWeather,
-          }}
-          partner={{
-            name: partner?.display_name ?? 'Ta moitié',
-            city: partner?.city_name ?? null,
-            timezone: partner?.timezone ?? null,
-            weather: partnerWeather,
-          }}
-        />
-
         <View style={{ padding: spacing.lg, gap: spacing.md }}>
-          {/* Comptes à rebours (retrouvailles) — remontés tout en haut */}
+          {/* Comptes à rebours (retrouvailles) — tout en haut */}
           <CountdownsCard />
+
+          {/* Vos deux ciels : heure, météo et série, en bulle sous le compte à rebours */}
+          <TwinSky
+            streak={streak}
+            me={{
+              name: profile?.display_name ?? 'Moi',
+              city: profile?.city_name ?? null,
+              timezone: profile?.timezone ?? null,
+              weather: myWeather,
+            }}
+            partner={{
+              name: partner?.display_name ?? 'Ta moitié',
+              city: partner?.city_name ?? null,
+              timezone: partner?.timezone ?? null,
+              weather: partnerWeather,
+            }}
+          />
 
           {/* Humeurs */}
           <Card>
