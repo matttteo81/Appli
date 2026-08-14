@@ -69,12 +69,13 @@ export default function RootLayout() {
     initLock();
   }, [init, initLock]);
 
-  // On cache le splash natif dès le tout premier rendu JS : l'animation avion +
-  // FIL (fond beige, identique) prend le relais IMMÉDIATEMENT. L'appli démarre
-  // donc directement sur l'animation, sans écran noir ni logo intermédiaire.
+  // On attend que les POLICES soient chargées avant de révéler l'animation :
+  // ainsi « FIL » et la phrase s'affichent d'emblée dans la bonne police, sans
+  // changement de police en cours de route. Le splash natif (fond beige,
+  // identique) reste affiché le temps du chargement — donc aucun écran noir.
   useEffect(() => {
-    SplashScreen.hideAsync().catch(() => {});
-  }, []);
+    if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
+  }, [fontsLoaded]);
 
   // Filet de sécurité : si l'animation ne se terminait jamais, on monte quand
   // même l'app au bout de 5 s.
@@ -84,6 +85,12 @@ export default function RootLayout() {
       return () => clearTimeout(t);
     }
   }, [mountApp]);
+
+  // Tant que les polices ne sont pas prêtes, on laisse le splash natif beige :
+  // pas d'écran noir, et le texte n'apparaîtra jamais dans une mauvaise police.
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#D8C7AC' }}>

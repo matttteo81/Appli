@@ -27,10 +27,14 @@ export function AnimatedSplash({
   const finish = () => {
     if (done.current) return;
     done.current = true;
-    // On monte l'app maintenant (thread dégagé, l'animation est finie), puis on
-    // fond le splash par-dessus pendant que l'app se met en place derrière.
+    // On monte l'app MAINTENANT, pendant que le splash est encore totalement
+    // opaque : le petit à-coup du montage est ainsi caché derrière le splash.
     onReveal?.();
-    Animated.timing(container, { toValue: 0, duration: 550, useNativeDriver: true }).start(() => onDone());
+    // On laisse ~450 ms à l'app pour se mettre en place sous le splash opaque,
+    // puis on fond en douceur. Plus de « mini lag » visible à la fin.
+    setTimeout(() => {
+      Animated.timing(container, { toValue: 0, duration: 550, useNativeDriver: true }).start(() => onDone());
+    }, 450);
   };
 
   useEffect(() => {
@@ -90,6 +94,19 @@ const styles = StyleSheet.create({
     letterSpacing: 4,
     color: colors.encre,
     marginTop: 8,
+    // Largeur pleine + centrage + marge : le letterSpacing du dernier « L » ne
+    // déborde plus, donc plus de lettre rognée.
+    alignSelf: 'stretch',
+    textAlign: 'center',
+    paddingHorizontal: 24,
   },
-  tagline: { fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.grenat, marginTop: 6 },
+  tagline: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 16,
+    color: colors.grenat,
+    marginTop: 6,
+    alignSelf: 'stretch',
+    textAlign: 'center',
+    paddingHorizontal: 24,
+  },
 });
