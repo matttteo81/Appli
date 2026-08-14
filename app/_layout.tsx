@@ -32,6 +32,7 @@ import { Toast } from '../src/components/Toast';
 import { OfflineBanner } from '../src/components/OfflineBanner';
 import { Onboarding } from '../src/components/Onboarding';
 import { AnimatedSplash } from '../src/components/AnimatedSplash';
+import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { supabase } from '../src/lib/supabase';
 import { registerForPushNotifications } from '../src/lib/notifications';
 import { refreshMyLocation } from '../src/lib/autoLocation';
@@ -131,14 +132,35 @@ export default function RootLayout() {
           </>
         )}
         {showSplash && (
-          <AnimatedSplash
-            onReveal={() => setMountApp(true)}
-            onDone={() => setShowSplash(false)}
-          />
+          <ErrorBoundary
+            fallback={
+              <SplashSkip
+                onReveal={() => setMountApp(true)}
+                onDone={() => setShowSplash(false)}
+              />
+            }
+          >
+            <AnimatedSplash
+              onReveal={() => setMountApp(true)}
+              onDone={() => setShowSplash(false)}
+            />
+          </ErrorBoundary>
         )}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
+}
+
+/**
+ * Repli si l'animation de démarrage lève une erreur : on révèle l'app et on
+ * ferme le splash immédiatement, pour ne jamais rester bloqué dessus.
+ */
+function SplashSkip({ onReveal, onDone }: { onReveal: () => void; onDone: () => void }) {
+  useEffect(() => {
+    onReveal();
+    onDone();
+  }, [onReveal, onDone]);
+  return null;
 }
 
 /**
