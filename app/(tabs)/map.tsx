@@ -24,7 +24,7 @@ import { supabase } from '../../src/lib/supabase';
 import type { Photo, Memory } from '../../src/types/db';
 import type { Pin, PhotoMapHandle } from '../../src/components/PhotoMap';
 
-// Carte (image satellite statique + épingles) chargée à la demande.
+// Carte interactive (react-native-maps / Apple Maps) chargée à la demande.
 const PhotoMap = React.lazy(() => import('../../src/components/PhotoMap'));
 
 type LatLng = { latitude: number; longitude: number };

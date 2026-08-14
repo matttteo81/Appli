@@ -56,7 +56,10 @@ export default function RootLayout() {
   });
 
   const init = useAuth((s) => s.init);
-  const initialized = useAuth((s) => s.initialized);
+  // NB : on ne s'abonne PAS à `initialized` ici. Pendant l'animation de
+  // démarrage, init() met à jour l'auth ; s'abonner ferait re-rendre la racine
+  // à chaque changement et saccaderait le Lottie. Le montage de l'app est
+  // déclenché par la fin de l'animation (onReveal), pas par l'auth.
   const initLock = useLock((s) => s.init);
   const [showSplash, setShowSplash] = useState(true);
   // On ne monte l'arbre lourd (navigation + écrans) qu'une fois l'animation

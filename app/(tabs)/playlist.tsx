@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import {
   Button,
   EmptyState,
@@ -31,6 +32,7 @@ import {
 } from '../../src/lib/music';
 
 export default function Playlist() {
+  const router = useRouter();
   const { rows } = useCoupleTable<Track>('playlist_tracks');
   const couple = useAuth((s) => s.couple);
   const profile = useAuth((s) => s.profile);
@@ -81,7 +83,11 @@ export default function Playlist() {
 
   return (
     <Screen>
-      <ScreenHeader title="Playlist" subtitle="Vos morceaux à deux" />
+      <ScreenHeader
+        title="Playlist"
+        subtitle="Vos morceaux à deux"
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/activites'))}
+      />
       <FlatList
         data={rows}
         keyExtractor={(t) => t.id}

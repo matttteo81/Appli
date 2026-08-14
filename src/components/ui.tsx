@@ -217,17 +217,39 @@ export function ScreenHeader({
   title,
   subtitle,
   right,
+  onBack,
 }: {
   title: string;
   subtitle?: string;
   right?: React.ReactNode;
+  /** Si fourni, affiche une flèche de retour à gauche du titre. */
+  onBack?: () => void;
 }) {
   return (
     <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <ThemedText variant="display" color={colors.encre}>
-          {title}
-        </ThemedText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 }}>
+          {onBack ? (
+            <Pressable
+              onPress={onBack}
+              hitSlop={12}
+              accessibilityLabel="Retour"
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 17,
+                backgroundColor: colors.cremeDoux,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text style={{ fontSize: 22, color: colors.encre, marginTop: -2 }}>‹</Text>
+            </Pressable>
+          ) : null}
+          <ThemedText variant="display" color={colors.encre}>
+            {title}
+          </ThemedText>
+        </View>
         {right ?? null}
       </View>
       {subtitle ? (
