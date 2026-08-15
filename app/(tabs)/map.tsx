@@ -2,6 +2,7 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   FlatList,
   Modal,
   Pressable,
@@ -28,6 +29,8 @@ import type { Pin, PhotoMapHandle } from '../../src/components/PhotoMap';
 const PhotoMap = React.lazy(() => import('../../src/components/PhotoMap'));
 
 type LatLng = { latitude: number; longitude: number };
+
+const VIEWER_W = Dimensions.get('window').width;
 
 /** Niveau de zoom qui englobe un ensemble de points. */
 function zoomForSpan(coords: LatLng[]): number {
@@ -104,6 +107,8 @@ function MapScreenInner() {
   const [query, setQuery] = useState('');
   const [locating, setLocating] = useState(false);
   const [avatarUrls, setAvatarUrls] = useState<{ me?: string; partner?: string }>({});
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
+  const [viewer, setViewer] = useState<Photo[] | null>(null);
   // Le point bleu « ma position » n'est activé qu'une fois la permission
   // accordée : activer la localisation MapKit sans autorisation peut faire
   // planter la carte sur iOS.
@@ -153,9 +158,29 @@ function MapScreenInner() {
     return () => { active = false; };
   }, [profile?.avatar_path, partner?.avatar_path]);
 
+  // URLs signées des photos géolocalisées (pour les vignettes + la visionneuse).
+  const geoKey = photos
+    .filter((p) => p.lat != null && p.lng != null)
+    .map((p) => p.storage_path)
+    .join(',');
+  useEffect(() => {
+    const paths = geoKey ? geoKey.split(',').filter(Boolean) : [];
+    if (paths.length === 0) { setPhotoUrls({}); return; }
+    let active = true;
+    (async () => {
+      const { data } = await supabase.storage.from('photos').createSignedUrls(paths, 60 * 60);
+      if (!active || !data) return;
+      const map: Record<string, string> = {};
+      data.forEach((d) => { if (d.signedUrl && d.path) map[d.path] = d.signedUrl; });
+      setPhotoUrls(map);
+    })();
+    return () => { active = false; };
+  }, [geoKey]);
+
   // Toutes les épingles : vous deux + photos géolocalisées + souvenirs du Journal.
-  const pins = useMemo<Pin[]>(() => {
+  const { pins, photoGroups } = useMemo(() => {
     const out: Pin[] = [];
+    const groups: Record<string, Photo[]> = {};
     if (mePos) {
       out.push({ id: 'me', ...mePos, kind: 'me', title: profile?.display_name ?? 'Toi' });
     }
@@ -163,7 +188,7 @@ function MapScreenInner() {
       out.push({ id: 'partner', ...partnerPos, kind: 'partner', title: partner?.display_name ?? 'Ta moitié' });
     }
 
-    // Photos regroupées par lieu (~11 km).
+    // Photos regroupées par lieu (~11 km) → vignette façon Snap Map.
     const geo = photos.filter((p) => p.lat != null && p.lng != null);
     const clusters: Record<string, { lat: number; lng: number; items: Photo[] }> = {};
     for (const p of geo) {
@@ -173,12 +198,20 @@ function MapScreenInner() {
     }
     for (const [key, c] of Object.entries(clusters)) {
       const n = c.items.length;
+      const id = `photo-${key}`;
+      // Photo la plus récente en premier (vignette + ouverture).
+      const sorted = [...c.items].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+      groups[id] = sorted;
       out.push({
-        id: `photo-${key}`,
+        id,
         latitude: c.lat / n,
         longitude: c.lng / n,
-        title: n > 1 ? `${n} photos ici` : c.items[0].caption?.trim() || frShort(c.items[0].created_at),
+        title: n > 1 ? `${n} photos ici` : sorted[0].caption?.trim() || frShort(sorted[0].created_at),
         kind: 'photo',
+        imageUrl: photoUrls[sorted[0].storage_path],
+        count: n,
       });
     }
 
@@ -193,17 +226,22 @@ function MapScreenInner() {
         kind: 'memory',
       });
     }
-    return out;
-  }, [mePos, partnerPos, photos, memories, profile?.display_name, partner?.display_name]);
+    return { pins: out, photoGroups: groups };
+  }, [mePos, partnerPos, photos, memories, photoUrls, profile?.display_name, partner?.display_name]);
+
+  // Ouvre la visionneuse quand on tape une vignette photo.
+  const onPinPress = (pin: Pin) => {
+    if (pin.id.startsWith('photo-') && photoGroups[pin.id]?.length) {
+      setViewer(photoGroups[pin.id]);
+    }
+  };
+
+  // Zoom rapproché sur une personne (tape son avatar dans le bandeau).
+  const zoomTo = (pos: LatLng | null) => {
+    if (pos) mapRef.current?.setCameraPosition({ coordinates: pos, zoom: 13 });
+  };
 
   const initial = useMemo(() => fitOf(pins.map((p) => ({ latitude: p.latitude, longitude: p.longitude }))), [pins]);
-
-  const focusBoth = () => {
-    const both = [mePos, partnerPos].filter((p): p is LatLng => !!p);
-    if (both.length === 0) return;
-    const { center, zoom } = fitOf(both);
-    mapRef.current?.setCameraPosition({ coordinates: center, zoom });
-  };
 
   const useExactLocation = async () => {
     setLocating(true);
@@ -272,7 +310,7 @@ function MapScreenInner() {
               pins={pins}
               satellite
               showUserLocation={canShowLocation}
-              onPinPress={() => {}}
+              onPinPress={onPinPress}
             />
           </Suspense>
         </ErrorBoundary>
@@ -288,14 +326,15 @@ function MapScreenInner() {
           </Text>
         </View>
 
-        {/* Vous deux, avec vos photos et vos positions */}
+        {/* Vous deux : touchez un visage pour zoomer précisément dessus. */}
         {mePos || partnerPos ? (
-          <Pressable style={styles.peopleChip} onPress={focusBoth}>
+          <View style={styles.peopleChip}>
             <PersonMini
               url={avatarUrls.me}
               emoji={profile?.avatar_emoji}
               city={profile?.city_name}
               ring={colors.ambre}
+              onPress={() => zoomTo(mePos)}
             />
             <View style={styles.chipDivider} />
             <PersonMini
@@ -303,8 +342,9 @@ function MapScreenInner() {
               emoji={partner?.avatar_emoji}
               city={partner?.city_name}
               ring={colors.sauge}
+              onPress={() => zoomTo(partnerPos)}
             />
-          </Pressable>
+          </View>
         ) : null}
       </View>
 
@@ -359,16 +399,44 @@ function MapScreenInner() {
           </View>
         </Screen>
       </Modal>
+
+      {/* Visionneuse photo (au tap d'une vignette) */}
+      <Modal visible={viewer !== null} animationType="fade" transparent onRequestClose={() => setViewer(null)}>
+        <View style={styles.viewerBackdrop}>
+          <FlatList
+            data={viewer ?? []}
+            keyExtractor={(p) => p.id}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <View style={{ width: VIEWER_W, alignItems: 'center', justifyContent: 'center' }}>
+                <Image
+                  source={{ uri: photoUrls[item.storage_path] }}
+                  style={styles.viewerImg}
+                  contentFit="contain"
+                />
+                {item.caption ? (
+                  <Text style={styles.viewerCaption} numberOfLines={2}>{item.caption}</Text>
+                ) : null}
+              </View>
+            )}
+          />
+          <Pressable style={styles.viewerClose} onPress={() => setViewer(null)} hitSlop={12}>
+            <Text style={styles.viewerCloseTxt}>✕</Text>
+          </Pressable>
+        </View>
+      </Modal>
     </Screen>
   );
 }
 
-/** Petite pastille : photo de profil (ou emoji) + ville, dans le bandeau. */
+/** Petite pastille : photo de profil (ou emoji) + ville. Touche pour zoomer. */
 function PersonMini({
-  url, emoji, city, ring,
-}: { url?: string; emoji?: string | null; city?: string | null; ring: string }) {
+  url, emoji, city, ring, onPress,
+}: { url?: string; emoji?: string | null; city?: string | null; ring: string; onPress?: () => void }) {
   return (
-    <View style={styles.personMini}>
+    <Pressable style={styles.personMini} onPress={onPress} hitSlop={6}>
       <View style={[styles.avatar, { borderColor: ring }]}>
         {url ? (
           <Image source={{ uri: url }} style={styles.avatarImg} contentFit="cover" />
@@ -377,7 +445,7 @@ function PersonMini({
         )}
       </View>
       <Text style={styles.personCity} numberOfLines={1}>{city ?? '—'}</Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -385,7 +453,7 @@ const styles = StyleSheet.create({
   loading: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.encre },
   topOverlay: {
     position: 'absolute',
-    top: spacing.md,
+    top: spacing.md + 44, // descendu de ~1,5 cm sous la barre d'état
     left: spacing.md,
     right: spacing.md,
     gap: spacing.sm,
@@ -456,4 +524,26 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.bordure,
   },
+  viewerBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.94)', justifyContent: 'center' },
+  viewerImg: { width: VIEWER_W - 24, height: '76%', borderRadius: radius.lg },
+  viewerCaption: {
+    color: colors.creme,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 15,
+    textAlign: 'center',
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  viewerClose: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewerCloseTxt: { color: '#fff', fontSize: 20, fontWeight: '600' },
 });

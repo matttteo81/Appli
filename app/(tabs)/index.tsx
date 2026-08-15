@@ -13,6 +13,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Button, Card, ThemedText } from '../../src/components/ui';
 import { TwinSky } from '../../src/components/TwinSky';
@@ -50,6 +51,7 @@ export default function Home() {
   const updateCouple = useAuth((s) => s.updateCouple);
   const updateProfile = useAuth((s) => s.updateProfile);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [picker, setPicker] = useState<null | 'together'>(null);
   const [tempDate, setTempDate] = useState<Date>(new Date());
@@ -191,7 +193,7 @@ export default function Home() {
         </>
       ) : null}
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 150 }}>
+      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.sm, paddingBottom: 150 }}>
         <View style={{ padding: spacing.lg, gap: spacing.md }}>
           {/* Comptes à rebours (retrouvailles) — tout en haut */}
           <CountdownsCard />
@@ -239,43 +241,6 @@ export default function Home() {
               </View>
             </View>
           </Card>
-
-          {/* Nos espaces à deux, en grille compacte */}
-          <ThemedText variant="label" color={colors.texteGris} style={{ marginTop: spacing.xs }}>
-            À DEUX
-          </ThemedText>
-          <View style={styles.tileGrid}>
-            {NAV_TILES.map((t) => {
-              const count = badges[t.route.slice(1) as HomeSection] ?? 0;
-              return (
-              <Pressable
-                key={t.route}
-                onPress={() => router.push(t.route as never)}
-                style={[styles.tile, { backgroundColor: t.color }]}
-              >
-                {count > 0 ? (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{count > 9 ? '9+' : count}</Text>
-                  </View>
-                ) : null}
-                <Text style={styles.tileEmoji}>{t.emoji}</Text>
-                <View>
-                  <ThemedText variant="bodyMedium" color={t.dark ? colors.encre : colors.creme}>
-                    {t.label}
-                  </ThemedText>
-                  <ThemedText
-                    variant="body"
-                    color={t.dark ? colors.encre : colors.creme}
-                    style={{ opacity: 0.8, fontSize: 13, lineHeight: 17, marginTop: 1 }}
-                    numberOfLines={2}
-                  >
-                    {t.sub}
-                  </ThemedText>
-                </View>
-              </Pressable>
-              );
-            })}
-          </View>
 
           {/* Question du jour */}
           <QuestionCard />
@@ -344,6 +309,43 @@ export default function Home() {
                 </ThemedText>
               </Pressable>
             </View>
+          </View>
+
+          {/* Nos espaces à deux, en grille compacte */}
+          <ThemedText variant="label" color={colors.texteGris} style={{ marginTop: spacing.xs }}>
+            À DEUX
+          </ThemedText>
+          <View style={styles.tileGrid}>
+            {NAV_TILES.map((t) => {
+              const count = badges[t.route.slice(1) as HomeSection] ?? 0;
+              return (
+              <Pressable
+                key={t.route}
+                onPress={() => router.push(t.route as never)}
+                style={[styles.tile, { backgroundColor: t.color }]}
+              >
+                {count > 0 ? (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{count > 9 ? '9+' : count}</Text>
+                  </View>
+                ) : null}
+                <Text style={styles.tileEmoji}>{t.emoji}</Text>
+                <View>
+                  <ThemedText variant="bodyMedium" color={t.dark ? colors.encre : colors.creme}>
+                    {t.label}
+                  </ThemedText>
+                  <ThemedText
+                    variant="body"
+                    color={t.dark ? colors.encre : colors.creme}
+                    style={{ opacity: 0.8, fontSize: 13, lineHeight: 17, marginTop: 1 }}
+                    numberOfLines={2}
+                  >
+                    {t.sub}
+                  </ThemedText>
+                </View>
+              </Pressable>
+              );
+            })}
           </View>
 
           {/* Paramètres (page dédiée) */}

@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
 
 /**
- * Une épingle sur la carte : une photo géolocalisée, un souvenir du Journal,
- * ou l'un de vous deux.
+ * Une épingle sur la carte : une photo géolocalisée (vignette), un souvenir du
+ * Journal, ou l'un de vous deux.
  */
 export type Pin = {
   id: string;
@@ -12,6 +12,10 @@ export type Pin = {
   longitude: number;
   title: string;
   kind: 'photo' | 'me' | 'partner' | 'memory';
+  /** Pour les photos : vignette affichée façon Snap Map. */
+  imageUrl?: string;
+  /** Nombre de photos regroupées à cet endroit. */
+  count?: number;
 };
 
 /** Poignée impérative : recentrer/zoomer la carte. */
@@ -36,7 +40,6 @@ function validCoord(lat: number, lng: number): boolean {
   );
 }
 
-/** Région (centre + zoom) qui cadre toutes les épingles. */
 function regionForPins(pins: Pin[], center: { latitude: number; longitude: number }): Region {
   const pts = pins.filter((p) => validCoord(p.latitude, p.longitude));
   if (pts.length === 0) {
@@ -52,17 +55,42 @@ function regionForPins(pins: Pin[], center: { latitude: number; longitude: numbe
   return {
     latitude: (minLat + maxLat) / 2,
     longitude: (minLng + maxLng) / 2,
-    // Marge de 60 %, et un zoom minimal (~0.05° ≈ niveau ville) pour un seul point.
     latitudeDelta: Math.max((maxLat - minLat) * 1.6, 0.05),
     longitudeDelta: Math.max((maxLng - minLng) * 1.6, 0.05),
   };
 }
 
+/** Marqueur vignette photo (façon Snap Map) — suit son propre chargement. */
+function PhotoThumbMarker({ pin, onPress }: { pin: Pin; onPress?: (p: Pin) => void }) {
+  const [loaded, setLoaded] = React.useState(false);
+  return (
+    <Marker
+      coordinate={{ latitude: pin.latitude, longitude: pin.longitude }}
+      onPress={() => onPress?.(pin)}
+      tracksViewChanges={!loaded}
+      anchor={{ x: 0.5, y: 0.5 }}
+    >
+      <View style={styles.thumbWrap}>
+        <Image
+          source={{ uri: pin.imageUrl }}
+          style={styles.thumbImg}
+          onLoad={() => setLoaded(true)}
+          onError={() => setLoaded(true)}
+        />
+        {pin.count && pin.count > 1 ? (
+          <View style={styles.thumbBadge}>
+            <Text style={styles.thumbBadgeTxt}>{pin.count > 9 ? '9+' : pin.count}</Text>
+          </View>
+        ) : null}
+      </View>
+    </Marker>
+  );
+}
+
 /**
- * Carte INTERACTIVE (react-native-maps, adossée à Apple Maps sur iOS) :
- * pincer pour zoomer, déplacer, imagerie satellite + libellés (hybrid), point
- * bleu « ma position ». Bibliothèque mature et stable (pas comme expo-maps
- * alpha, ni la WebView qui plantait au démontage).
+ * Carte INTERACTIVE (react-native-maps / Apple Maps sur iOS) : pincer pour
+ * zoomer, déplacer, imagerie satellite + libellés, point bleu « ma position ».
+ * Les photos apparaissent en vignettes façon Snap Map.
  */
 const PhotoMap = React.forwardRef<PhotoMapHandle, {
   center: { latitude: number; longitude: number };
@@ -73,8 +101,6 @@ const PhotoMap = React.forwardRef<PhotoMapHandle, {
   showUserLocation?: boolean;
 }>(function PhotoMap({ center, pins, onPinPress, satellite = true, showUserLocation }, ref) {
   const mapRef = React.useRef<MapView>(null);
-  // Les marqueurs personnalisés (emoji) doivent être « capturés » au moins une
-  // fois ; on coupe ensuite le suivi pour économiser la batterie.
   const [tracks, setTracks] = React.useState(true);
 
   const cleanPins = React.useMemo(
@@ -84,7 +110,6 @@ const PhotoMap = React.forwardRef<PhotoMapHandle, {
 
   const initialRegion = React.useMemo(
     () => regionForPins(cleanPins, center),
-    // région initiale seulement : on ne veut pas re-cadrer à chaque changement.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
@@ -99,10 +124,10 @@ const PhotoMap = React.forwardRef<PhotoMapHandle, {
       const c = config?.coordinates;
       if (!c || !validCoord(c.latitude, c.longitude)) return;
       const zoom = Number.isFinite(config?.zoom) ? config!.zoom! : 6;
-      const delta = Math.max(0.01, Math.min(160, 360 / Math.pow(2, zoom)));
+      const delta = Math.max(0.005, Math.min(160, 360 / Math.pow(2, zoom)));
       mapRef.current?.animateToRegion(
         { latitude: c.latitude, longitude: c.longitude, latitudeDelta: delta, longitudeDelta: delta },
-        450,
+        550,
       );
     },
   }), []);
@@ -125,6 +150,9 @@ const PhotoMap = React.forwardRef<PhotoMapHandle, {
         toolbarEnabled={false}
       >
         {cleanPins.map((p) => {
+          if (p.imageUrl) {
+            return <PhotoThumbMarker key={p.id} pin={p} onPress={onPinPress} />;
+          }
           const m = MARKER[p.kind] ?? MARKER.photo;
           return (
             <Marker
@@ -155,6 +183,20 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
   },
   pinEmoji: { fontSize: 17 },
+  thumbWrap: {
+    width: 46, height: 56, borderRadius: 12,
+    borderWidth: 3, borderColor: '#7C3AED',
+    backgroundColor: '#FBF6EF', overflow: 'hidden',
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
+  },
+  thumbImg: { width: '100%', height: '100%' },
+  thumbBadge: {
+    position: 'absolute', top: -6, right: -6,
+    minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4,
+    backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: '#FBF6EF',
+  },
+  thumbBadgeTxt: { color: '#fff', fontSize: 11, fontWeight: '700' },
 });
 
 export default PhotoMap;

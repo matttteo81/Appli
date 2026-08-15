@@ -86,7 +86,7 @@ export default function Playlist() {
       <ScreenHeader
         title="Playlist"
         subtitle="Vos morceaux à deux"
-        onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/activites'))}
+        onBack={() => router.navigate('/(tabs)/activites')}
       />
       <FlatList
         data={rows}
