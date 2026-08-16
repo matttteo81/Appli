@@ -289,12 +289,38 @@ struct MoodWidget: Widget {
   }
 }
 
-// MARK: - Widget « Photos partagées »
+// MARK: - Widget « Photos partagées » (défilement automatique)
+
+struct PhotoEntry: TimelineEntry {
+  let date: Date
+  let index: Int
+}
+
+struct PhotoProvider: TimelineProvider {
+  func placeholder(in context: Context) -> PhotoEntry { PhotoEntry(date: Date(), index: 0) }
+  func getSnapshot(in context: Context, completion: @escaping (PhotoEntry) -> Void) {
+    completion(PhotoEntry(date: Date(), index: 0))
+  }
+  func getTimeline(in context: Context, completion: @escaping (Timeline<PhotoEntry>) -> Void) {
+    let count = max(1, Shared.int("photo_count"))
+    let now = Date()
+    var entries: [PhotoEntry] = []
+    // Une photo différente toutes les 15 min, sur ~12 h ; iOS avance tout seul.
+    for i in 0..<48 {
+      if let d = Calendar.current.date(byAdding: .minute, value: i * 15, to: now) {
+        entries.append(PhotoEntry(date: d, index: i % count))
+      }
+    }
+    completion(Timeline(entries: entries, policy: .atEnd))
+  }
+}
 
 struct PhotoView: View {
-  var entry: DayEntry
+  var entry: PhotoEntry
   var body: some View {
-    let b64 = Shared.str("photo_b64")
+    let count = Shared.int("photo_count")
+    let key = count > 0 ? "photo_b64_\(entry.index)" : "photo_b64"
+    let b64 = Shared.str(key) ?? Shared.str("photo_b64")
     ZStack {
       if let b64 = b64, let data = Data(base64Encoded: b64), let ui = UIImage(data: data) {
         Image(uiImage: ui)
@@ -318,11 +344,11 @@ struct PhotoView: View {
 struct PhotoWidget: Widget {
   let kind = "FilPhoto"
   var body: some WidgetConfiguration {
-    StaticConfiguration(kind: kind, provider: FilProvider()) { entry in
+    StaticConfiguration(kind: kind, provider: PhotoProvider()) { entry in
       PhotoView(entry: entry)
     }
-    .configurationDisplayName("Photo partagée")
-    .description("Votre dernière photo partagée.")
+    .configurationDisplayName("Photos partagées")
+    .description("Vos dernières photos, en défilement automatique.")
     .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
   }
 }

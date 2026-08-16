@@ -72,31 +72,41 @@ export async function syncMediaWidgets(coupleId?: string | null) {
   }
   const { supabase } = require('./supabase');
 
-  // 1) Dernière photo → vignette base64
+  // 1) Dernières photos → vignettes base64 (le widget les fait défiler)
   try {
-    const { data: ph } = await supabase
+    const { data: phs } = await supabase
       .from('photos')
       .select('storage_path')
       .eq('couple_id', coupleId)
       .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (ph?.storage_path) {
-      const { data: signed } = await supabase.storage
-        .from('photos')
-        .createSignedUrl(ph.storage_path, 60 * 60);
-      if (signed?.signedUrl) {
-        const ImageManipulator = require('expo-image-manipulator');
-        const out = await ImageManipulator.manipulateAsync(
-          signed.signedUrl,
-          [{ resize: { width: 600 } }],
-          { compress: 0.6, base64: true, format: ImageManipulator.SaveFormat.JPEG },
-        );
-        if (out?.base64) storage.set('photo_b64', out.base64);
+      .limit(6);
+    const paths = (phs ?? []).map((p: any) => p.storage_path).filter(Boolean);
+    if (paths.length > 0) {
+      const { data: signed } = await supabase.storage.from('photos').createSignedUrls(paths, 60 * 60);
+      const ImageManipulator = require('expo-image-manipulator');
+      let count = 0;
+      for (let i = 0; i < (signed?.length ?? 0); i++) {
+        const url = signed[i]?.signedUrl;
+        if (!url) continue;
+        try {
+          const out = await ImageManipulator.manipulateAsync(
+            url,
+            [{ resize: { width: 500 } }],
+            { compress: 0.5, base64: true, format: ImageManipulator.SaveFormat.JPEG },
+          );
+          if (out?.base64) {
+            storage.set('photo_b64_' + count, out.base64);
+            if (count === 0) storage.set('photo_b64', out.base64); // compat
+            count++;
+          }
+        } catch {
+          // on saute cette photo
+        }
       }
+      storage.set('photo_count', count);
     }
   } catch {
-    // on garde l'ancienne vignette
+    // on garde les anciennes vignettes
   }
 
   // 2) Dessin libre → JSON compact de traits (dessinés par le widget)
