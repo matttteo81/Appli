@@ -169,6 +169,125 @@ struct TogetherWidget: Widget {
   }
 }
 
+// MARK: - Timeline « à la minute » (pour l'heure du partenaire)
+
+struct MinuteProvider: TimelineProvider {
+  func placeholder(in context: Context) -> DayEntry { DayEntry(date: Date()) }
+  func getSnapshot(in context: Context, completion: @escaping (DayEntry) -> Void) {
+    completion(DayEntry(date: Date()))
+  }
+  func getTimeline(in context: Context, completion: @escaping (Timeline<DayEntry>) -> Void) {
+    let cal = Calendar.current
+    let now = Date()
+    let start = cal.date(bySetting: .second, value: 0, of: now) ?? now
+    var entries: [DayEntry] = []
+    for m in 0..<60 {
+      if let d = cal.date(byAdding: .minute, value: m, to: start) {
+        entries.append(DayEntry(date: d))
+      }
+    }
+    completion(Timeline(entries: entries, policy: .atEnd))
+  }
+}
+
+// MARK: - Widget « Partenaire » (heure locale + météo + ville)
+
+struct PartnerView: View {
+  var entry: DayEntry
+  var body: some View {
+    let name = Shared.str("partner_name") ?? "Ta moitié"
+    let city = Shared.str("partner_city")
+    let tzId = Shared.str("partner_timezone")
+    let wEmoji = Shared.str("partner_weather_emoji")
+    let temp = Shared.str("partner_temp")
+
+    let timeStr: String = {
+      let f = DateFormatter()
+      f.dateFormat = "HH:mm"
+      if let tzId = tzId, let tz = TimeZone(identifier: tzId) { f.timeZone = tz }
+      return f.string(from: entry.date)
+    }()
+
+    VStack(spacing: 3) {
+      Text(name)
+        .font(.system(size: 13, weight: .semibold))
+        .foregroundStyle(Color.filCreme.opacity(0.9))
+        .lineLimit(1)
+      Text(timeStr)
+        .font(.system(size: 40, weight: .bold, design: .rounded))
+        .foregroundStyle(Color.filCreme)
+      if let city = city {
+        Text(city)
+          .font(.system(size: 12))
+          .foregroundStyle(Color.filCreme.opacity(0.8))
+          .lineLimit(1)
+      }
+      if let wEmoji = wEmoji {
+        Text("\(wEmoji) \(temp ?? "")°")
+          .font(.system(size: 13, weight: .medium))
+          .foregroundStyle(Color.filAmbre)
+          .lineLimit(1)
+      }
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .containerBackground(for: .widget) {
+      LinearGradient(colors: [Color.filPrune, Color.filEncre], startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+  }
+}
+
+struct PartnerWidget: Widget {
+  let kind = "FilPartner"
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: kind, provider: MinuteProvider()) { entry in
+      PartnerView(entry: entry)
+    }
+    .configurationDisplayName("Ta moitié")
+    .description("L'heure locale, la météo et la ville de ta moitié.")
+    .supportedFamilies([.systemSmall, .systemMedium])
+  }
+}
+
+// MARK: - Widget « Humeur du partenaire »
+
+struct MoodView: View {
+  var entry: DayEntry
+  var body: some View {
+    let name = Shared.str("partner_name") ?? "Ta moitié"
+    let emoji = Shared.str("partner_mood_emoji") ?? "🌙"
+    let label = Shared.str("partner_mood_label") ?? "En attente…"
+    VStack(spacing: 6) {
+      Text(emoji)
+        .font(.system(size: 48))
+      Text(label)
+        .font(.system(size: 15, weight: .semibold))
+        .foregroundStyle(Color.filEncre)
+        .multilineTextAlignment(.center)
+        .lineLimit(2)
+      Text(name)
+        .font(.system(size: 12, weight: .medium))
+        .foregroundStyle(Color.filEncre.opacity(0.6))
+        .lineLimit(1)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .containerBackground(for: .widget) {
+      LinearGradient(colors: [Color.filCreme, Color(red: 0.953, green: 0.925, blue: 0.882)], startPoint: .top, endPoint: .bottom)
+    }
+  }
+}
+
+struct MoodWidget: Widget {
+  let kind = "FilMood"
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: kind, provider: FilProvider()) { entry in
+      MoodView(entry: entry)
+    }
+    .configurationDisplayName("Humeur de ta moitié")
+    .description("L'humeur du moment de ta moitié.")
+    .supportedFamilies([.systemSmall, .systemMedium])
+  }
+}
+
 // MARK: - Bundle
 
 @main
@@ -176,5 +295,7 @@ struct FilWidgets: WidgetBundle {
   var body: some Widget {
     CountdownWidget()
     TogetherWidget()
+    PartnerWidget()
+    MoodWidget()
   }
 }

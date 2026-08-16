@@ -26,6 +26,8 @@ import { MOODS } from '../../src/lib/moods';
 import { fetchWeather, Weather } from '../../src/lib/weather';
 import { supabase } from '../../src/lib/supabase';
 import { syncWidgets } from '../../src/lib/widgets';
+import { useCoupleTable } from '../../src/hooks/useCoupleTable';
+import type { Countdown } from '../../src/types/db';
 import { loadHomeBadges, HomeSection } from '../../src/lib/homeBadges';
 import { toast } from '../../src/store/toast';
 
@@ -52,6 +54,7 @@ export default function Home() {
   const updateProfile = useAuth((s) => s.updateProfile);
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { rows: countdowns } = useCoupleTable<Countdown>('countdowns', 'date', true);
 
   const [picker, setPicker] = useState<null | 'together'>(null);
   const [tempDate, setTempDate] = useState<Date>(new Date());
@@ -86,16 +89,37 @@ export default function Home() {
     })();
   }, [couple?.id]);
 
-  // Alimente les widgets iOS (compte à rebours + jours ensemble + série).
+  // Alimente les widgets iOS : prochain compte à rebours, jours ensemble,
+  // série, et les infos du partenaire (heure/météo/ville + humeur).
   useEffect(() => {
     if (!couple) return;
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const next = countdowns.find((c) => c.date >= todayISO) ?? countdowns[0] ?? null;
     syncWidgets({
-      reunionDate: couple.reunion_date,
-      reunionLabel: 'Retrouvailles',
+      reunionDate: next?.date ?? null,
+      reunionLabel: next?.title ?? 'Retrouvailles',
       togetherSince: couple.together_since,
       streak,
+      partnerName: partner?.display_name ?? null,
+      partnerCity: partner?.city_name ?? null,
+      partnerTimezone: partner?.timezone ?? null,
+      partnerWeatherEmoji: partnerWeather?.emoji ?? null,
+      partnerTemp: partnerWeather?.temp != null ? String(Math.round(partnerWeather.temp)) : null,
+      partnerWeatherLabel: partnerWeather?.label ?? null,
+      partnerMoodEmoji: partner?.mood_emoji ?? null,
+      partnerMoodLabel: partner?.mood_label ?? null,
     });
-  }, [couple?.reunion_date, couple?.together_since, streak]);
+  }, [
+    couple?.together_since,
+    streak,
+    countdowns,
+    partner?.display_name,
+    partner?.city_name,
+    partner?.timezone,
+    partnerWeather,
+    partner?.mood_emoji,
+    partner?.mood_label,
+  ]);
 
   // Météo de chacun (rafraîchie au montage et toutes les 15 min).
   useEffect(() => {
