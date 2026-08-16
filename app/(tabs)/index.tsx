@@ -25,7 +25,7 @@ import { useAuth } from '../../src/store/auth';
 import { MOODS } from '../../src/lib/moods';
 import { fetchWeather, Weather } from '../../src/lib/weather';
 import { supabase } from '../../src/lib/supabase';
-import { syncWidgets } from '../../src/lib/widgets';
+import { syncWidgets, syncMediaWidgets } from '../../src/lib/widgets';
 import { useCoupleTable } from '../../src/hooks/useCoupleTable';
 import type { Countdown } from '../../src/types/db';
 import { loadHomeBadges, HomeSection } from '../../src/lib/homeBadges';
@@ -75,6 +75,8 @@ export default function Home() {
       let active = true;
       if (couple?.id) {
         loadHomeBadges(couple.id, partner?.id).then((b) => { if (active) setBadges(b); });
+        // Rafraîchit les widgets média (dernière photo + dessin partagé).
+        syncMediaWidgets(couple.id);
       }
       return () => { active = false; };
     }, [couple?.id, partner?.id]),

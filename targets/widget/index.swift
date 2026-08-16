@@ -1,5 +1,6 @@
 import WidgetKit
 import SwiftUI
+import UIKit
 
 // MARK: - Données partagées (App Group écrit par l'app React Native)
 
@@ -288,6 +289,115 @@ struct MoodWidget: Widget {
   }
 }
 
+// MARK: - Widget « Photos partagées »
+
+struct PhotoView: View {
+  var entry: DayEntry
+  var body: some View {
+    let b64 = Shared.str("photo_b64")
+    ZStack {
+      if let b64 = b64, let data = Data(base64Encoded: b64), let ui = UIImage(data: data) {
+        Image(uiImage: ui)
+          .resizable()
+          .scaledToFill()
+      } else {
+        VStack(spacing: 6) {
+          Text("📷").font(.system(size: 40))
+          Text("Ajoutez une photo dans Fil")
+            .font(.system(size: 12))
+            .foregroundStyle(Color.filCreme.opacity(0.85))
+            .multilineTextAlignment(.center)
+        }
+      }
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .containerBackground(for: .widget) { Color.filEncre }
+  }
+}
+
+struct PhotoWidget: Widget {
+  let kind = "FilPhoto"
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: kind, provider: FilProvider()) { entry in
+      PhotoView(entry: entry)
+    }
+    .configurationDisplayName("Photo partagée")
+    .description("Votre dernière photo partagée.")
+    .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+  }
+}
+
+// MARK: - Widget « Dessin partagé » (traits vectoriels dessinés nativement)
+
+struct WStroke: Decodable {
+  let c: String
+  let w: Double
+  let p: [[Double]]
+}
+
+func parseStrokes(_ s: String?) -> [WStroke] {
+  guard let s = s, let d = s.data(using: .utf8) else { return [] }
+  return (try? JSONDecoder().decode([WStroke].self, from: d)) ?? []
+}
+
+func colorFromHex(_ hex: String) -> Color {
+  var h = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+  if h.hasPrefix("#") { h.removeFirst() }
+  guard h.count == 6, let v = UInt64(h, radix: 16) else { return .black }
+  let r = Double((v & 0xFF0000) >> 16) / 255.0
+  let g = Double((v & 0x00FF00) >> 8) / 255.0
+  let b = Double(v & 0x0000FF) / 255.0
+  return Color(red: r, green: g, blue: b)
+}
+
+struct DrawingView: View {
+  var entry: DayEntry
+  var body: some View {
+    let strokes = parseStrokes(Shared.str("drawing_json"))
+    ZStack {
+      if strokes.isEmpty {
+        VStack(spacing: 6) {
+          Text("🎨").font(.system(size: 40))
+          Text("Dessinez à deux dans Fil")
+            .font(.system(size: 12))
+            .foregroundStyle(Color.filEncre.opacity(0.6))
+            .multilineTextAlignment(.center)
+        }
+      } else {
+        Canvas { ctx, size in
+          for st in strokes {
+            var path = Path()
+            for (i, pt) in st.p.enumerated() where pt.count >= 2 {
+              let point = CGPoint(x: pt[0] * size.width, y: pt[1] * size.height)
+              if i == 0 { path.move(to: point) } else { path.addLine(to: point) }
+            }
+            ctx.stroke(
+              path,
+              with: .color(colorFromHex(st.c)),
+              style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round)
+            )
+          }
+        }
+        .padding(6)
+      }
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .containerBackground(for: .widget) { Color.white }
+  }
+}
+
+struct DrawingWidget: Widget {
+  let kind = "FilDrawing"
+  var body: some WidgetConfiguration {
+    StaticConfiguration(kind: kind, provider: FilProvider()) { entry in
+      DrawingView(entry: entry)
+    }
+    .configurationDisplayName("Dessin partagé")
+    .description("Votre dessin libre partagé.")
+    .supportedFamilies([.systemSmall, .systemMedium])
+  }
+}
+
 // MARK: - Bundle
 
 @main
@@ -297,5 +407,7 @@ struct FilWidgets: WidgetBundle {
     TogetherWidget()
     PartnerWidget()
     MoodWidget()
+    PhotoWidget()
+    DrawingWidget()
   }
 }

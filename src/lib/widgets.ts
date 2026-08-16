@@ -55,3 +55,72 @@ export function syncWidgets(data: WidgetData) {
     // Pas de widget dans ce build : on ignore silencieusement.
   }
 }
+
+/**
+ * Widgets « média » (asynchrones) : dernière photo partagée (vignette) et
+ * dessin libre partagé (traits vectoriels, dessinés nativement par le widget).
+ * Tout est protégé : en cas d'échec, le widget affiche juste un état vide.
+ */
+export async function syncMediaWidgets(coupleId?: string | null) {
+  if (Platform.OS !== 'ios' || !coupleId) return;
+  let storage: any;
+  try {
+    const { ExtensionStorage } = require('@bacons/apple-targets');
+    storage = new ExtensionStorage(APP_GROUP);
+  } catch {
+    return; // pas de widget dans ce build
+  }
+  const { supabase } = require('./supabase');
+
+  // 1) Dernière photo → vignette base64
+  try {
+    const { data: ph } = await supabase
+      .from('photos')
+      .select('storage_path')
+      .eq('couple_id', coupleId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (ph?.storage_path) {
+      const { data: signed } = await supabase.storage
+        .from('photos')
+        .createSignedUrl(ph.storage_path, 60 * 60);
+      if (signed?.signedUrl) {
+        const ImageManipulator = require('expo-image-manipulator');
+        const out = await ImageManipulator.manipulateAsync(
+          signed.signedUrl,
+          [{ resize: { width: 600 } }],
+          { compress: 0.6, base64: true, format: ImageManipulator.SaveFormat.JPEG },
+        );
+        if (out?.base64) storage.set('photo_b64', out.base64);
+      }
+    }
+  } catch {
+    // on garde l'ancienne vignette
+  }
+
+  // 2) Dessin libre → JSON compact de traits (dessinés par le widget)
+  try {
+    const { data: strokes } = await supabase
+      .from('drawing_strokes')
+      .select('color,width,points')
+      .eq('couple_id', coupleId)
+      .eq('board', 'free')
+      .order('created_at', { ascending: true })
+      .limit(300);
+    const r = (n: number) => Math.round(n * 1000) / 1000; // 3 décimales
+    const compact = (strokes ?? []).map((s: any) => ({
+      c: s.color,
+      w: s.width,
+      p: (s.points ?? []).map((pt: number[]) => [r(pt[0]), r(pt[1])]),
+    }));
+    storage.set('drawing_json', JSON.stringify(compact));
+  } catch {
+    // on garde l'ancien dessin
+  }
+
+  try {
+    const { ExtensionStorage } = require('@bacons/apple-targets');
+    ExtensionStorage.reloadWidget();
+  } catch {}
+}
