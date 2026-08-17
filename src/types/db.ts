@@ -244,6 +244,15 @@ export type Nudge = {
   created_at: string;
 };
 
+export type Feedback = {
+  id: string;
+  couple_id: string | null;
+  author_id: string | null;
+  author_name: string | null;
+  message: string;
+  created_at: string;
+};
+
 export type Countdown = {
   id: string;
   couple_id: string;
@@ -301,6 +310,7 @@ export type Database = {
       game_responses: TableDef<GameResponse>;
       watch_sessions: TableDef<WatchSession>;
       saved_gifs: TableDef<SavedGif>;
+      feedback: TableDef<Feedback>;
     };
     Views: Record<string, never>;
     Functions: {

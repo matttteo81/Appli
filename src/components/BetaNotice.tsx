@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { ThemedText } from './ui';
 import { colors } from '../theme/colors';
 import { fonts, radius, spacing } from '../theme/typography';
@@ -14,6 +15,7 @@ const KEY = 'fil_beta_notice_seen_v1';
  */
 export function BetaNotice() {
   const [visible, setVisible] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     AsyncStorage.getItem(KEY).then((v) => {
@@ -24,6 +26,11 @@ export function BetaNotice() {
   const close = async () => {
     try { await AsyncStorage.setItem(KEY, '1'); } catch {}
     setVisible(false);
+  };
+
+  const openFeedback = async () => {
+    await close();
+    router.push('/retour');
   };
 
   return (
@@ -51,6 +58,9 @@ export function BetaNotice() {
 
             <Pressable style={styles.btn} onPress={close}>
               <Text style={styles.btnText}>C'est parti ✨</Text>
+            </Pressable>
+            <Pressable style={styles.linkBtn} onPress={openFeedback} hitSlop={8}>
+              <Text style={styles.linkText}>Faire un retour 💬</Text>
             </Pressable>
           </View>
         </View>
@@ -94,4 +104,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnText: { fontFamily: fonts.bodyBold, fontSize: 16, color: colors.encre },
+  linkBtn: { marginTop: spacing.sm, alignItems: 'center', paddingVertical: 6 },
+  linkText: { fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.prune },
 });

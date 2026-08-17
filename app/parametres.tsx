@@ -249,6 +249,18 @@ export default function Parametres() {
           </View>
         </View>
 
+        {/* Bêta */}
+        <View>
+          <ThemedText variant="label" color={colors.texteGris} style={styles.section}>BÊTA</ThemedText>
+          <View style={styles.group}>
+            <Row
+              title="Faire un retour 💬"
+              subtitle="Un bug, une idée, un détail à améliorer ? Dis-le-moi !"
+              onPress={() => router.push('/retour')}
+            />
+          </View>
+        </View>
+
         {/* Confidentialité */}
         <View>
           <ThemedText variant="label" color={colors.texteGris} style={styles.section}>CONFIDENTIALITÉ</ThemedText>
