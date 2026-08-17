@@ -244,6 +244,17 @@ export type Nudge = {
   created_at: string;
 };
 
+export type ReunionTask = {
+  id: string;
+  couple_id: string;
+  author_id: string | null;
+  text: string;
+  done: boolean;
+  done_by: string | null;
+  done_at: string | null;
+  created_at: string;
+};
+
 export type Feedback = {
   id: string;
   couple_id: string | null;
@@ -311,6 +322,7 @@ export type Database = {
       watch_sessions: TableDef<WatchSession>;
       saved_gifs: TableDef<SavedGif>;
       feedback: TableDef<Feedback>;
+      reunion_tasks: TableDef<ReunionTask>;
     };
     Views: Record<string, never>;
     Functions: {

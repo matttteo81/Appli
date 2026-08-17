@@ -121,6 +121,7 @@ export default function RootLayout() {
               <Stack.Screen name="parametres" />
               <Stack.Screen name="confidentialite" />
               <Stack.Screen name="retour" />
+              <Stack.Screen name="retrouvailles" />
               <Stack.Screen
                 name="nudge"
                 options={{ presentation: 'transparentModal', animation: 'fade' }}
@@ -208,7 +209,8 @@ function AuthGate() {
       group === 'carte-photos' ||
       group === 'parametres' ||
       group === 'confidentialite' ||
-      group === 'retour';
+      group === 'retour' ||
+      group === 'retrouvailles';
     if (!allowed) {
       router.replace('/(tabs)');
     }
