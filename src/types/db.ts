@@ -64,6 +64,7 @@ export type Profile = {
   mood_emoji: string | null;
   mood_label: string | null;
   mood_updated_at: string | null;
+  last_active: string | null;
   couple_id: string | null;
   created_at: string;
   updated_at: string;

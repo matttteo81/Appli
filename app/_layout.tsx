@@ -105,6 +105,7 @@ export default function RootLayout() {
             <AuthGate />
             <NotificationBridge />
             <LocationBridge />
+            <PresenceBridge />
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="pair" />
@@ -244,6 +245,28 @@ function LocationBridge() {
     return () => sub.remove();
   }, [profileId, autoOn, updateProfile]);
 
+  return null;
+}
+
+/**
+ * Présence : met à jour `last_active` de mon profil au premier plan et toutes
+ * les minutes tant que l'app est active. Sert à afficher « en ligne » chez la
+ * moitié. Mise à jour directe (sans toucher au store) pour éviter les re-rendus.
+ */
+function PresenceBridge() {
+  const myId = useAuth((s) => s.profile?.id);
+  useEffect(() => {
+    if (!myId) return;
+    const touch = () => {
+      supabase.from('profiles').update({ last_active: new Date().toISOString() }).eq('id', myId).then(() => {}, () => {});
+    };
+    touch();
+    const iv = setInterval(() => {
+      if (AppState.currentState === 'active') touch();
+    }, 60000);
+    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') touch(); });
+    return () => { clearInterval(iv); sub.remove(); };
+  }, [myId]);
   return null;
 }
 

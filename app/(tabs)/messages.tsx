@@ -42,6 +42,7 @@ import { sendAttention } from '../../src/lib/nudges';
 import { pushToPartner } from '../../src/lib/push';
 import { toast } from '../../src/store/toast';
 import { VoiceRecorder } from '../../src/components/VoiceRecorder';
+import { usePartnerPresence } from '../../src/hooks/usePartnerPresence';
 
 const MSG_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
 
@@ -81,6 +82,7 @@ export default function Messages() {
   const [missSending, setMissSending] = useState(false);
   const [missOpen, setMissOpen] = useState(false);
   const [recorderOpen, setRecorderOpen] = useState(false);
+  const presence = usePartnerPresence();
 
   // À l'ouverture de Messages : on marque comme lus + on efface la pastille.
   useFocusEffect(
@@ -325,6 +327,7 @@ export default function Messages() {
     <Screen edges={['top']}>
       <ScreenHeader
         title="Messages"
+        subtitle={presence ? (presence.online ? '🟢 en ligne' : presence.text) : undefined}
         right={
           <Pressable
             onPress={openMiss}

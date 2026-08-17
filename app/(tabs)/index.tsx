@@ -22,6 +22,7 @@ import { CountdownsCard } from '../../src/components/CountdownsCard';
 import { BetaNotice } from '../../src/components/BetaNotice';
 import { MilestoneCard } from '../../src/components/MilestoneCard';
 import { getTodayMilestone, scheduleAnniversaryNotification } from '../../src/lib/anniversary';
+import { usePartnerPresence } from '../../src/hooks/usePartnerPresence';
 import { colors } from '../../src/theme/colors';
 import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useAuth } from '../../src/store/auth';
@@ -187,6 +188,7 @@ export default function Home() {
 
   const together = useElapsed(couple?.together_since ?? null);
   const milestone = getTodayMilestone(couple?.together_since);
+  const presence = usePartnerPresence();
 
   // Programme la notification du prochain mensiversaire/anniversaire.
   useEffect(() => {
@@ -231,6 +233,16 @@ export default function Home() {
 
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.sm, paddingBottom: 150 }}>
         <View style={{ padding: spacing.lg, gap: spacing.md }}>
+          {/* Présence en direct de la moitié */}
+          {partner && presence ? (
+            <View style={styles.presence}>
+              <View style={[styles.presenceDot, { backgroundColor: presence.online ? colors.sauge : colors.texteGris }]} />
+              <ThemedText variant="body" color={colors.texteGris}>
+                {partner.display_name} · {presence.online ? 'en ligne' : presence.text}
+              </ThemedText>
+            </View>
+          ) : null}
+
           {/* Carte festive le jour d'un mensiversaire / anniversaire */}
           {milestone ? <MilestoneCard milestone={milestone} /> : null}
 
@@ -507,6 +519,17 @@ function formatDateFr(d: Date): string {
 }
 
 const styles = StyleSheet.create({
+  presence: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    alignSelf: 'center',
+    backgroundColor: colors.cremeDoux,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+  },
+  presenceDot: { width: 9, height: 9, borderRadius: 5 },
   tileGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
