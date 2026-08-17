@@ -49,6 +49,7 @@ const NAV_TILES: {
   { route: '/notes', emoji: '💌', label: 'Petits mots', sub: 'Surprises scellées', color: colors.corail },
   { route: '/journal', emoji: '📔', label: 'Notre journal', sub: 'Frise de souvenirs', color: colors.corail },
   { route: '/retrouvailles', emoji: '🧳', label: 'Retrouvailles', sub: 'Préparez votre visite', color: colors.ambre, dark: true },
+  { route: '/capsules', emoji: '🔒', label: 'Capsules', sub: 'Messages scellés dans le temps', color: colors.prune },
 ];
 
 export default function Home() {

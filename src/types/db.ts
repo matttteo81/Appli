@@ -245,6 +245,18 @@ export type Nudge = {
   created_at: string;
 };
 
+export type Capsule = {
+  id: string;
+  couple_id: string;
+  author_id: string | null;
+  author_name: string | null;
+  title: string | null;
+  message: string | null;
+  image_path: string | null;
+  open_date: string; // YYYY-MM-DD
+  created_at: string;
+};
+
 export type ReunionTask = {
   id: string;
   couple_id: string;
@@ -324,6 +336,7 @@ export type Database = {
       saved_gifs: TableDef<SavedGif>;
       feedback: TableDef<Feedback>;
       reunion_tasks: TableDef<ReunionTask>;
+      capsules: TableDef<Capsule>;
     };
     Views: Record<string, never>;
     Functions: {
