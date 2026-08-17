@@ -19,6 +19,7 @@ import { Button, Card, ThemedText } from '../../src/components/ui';
 import { TwinSky } from '../../src/components/TwinSky';
 import { QuestionCard } from '../../src/components/QuestionCard';
 import { CountdownsCard } from '../../src/components/CountdownsCard';
+import { BetaNotice } from '../../src/components/BetaNotice';
 import { colors } from '../../src/theme/colors';
 import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useAuth } from '../../src/store/auth';
@@ -390,6 +391,9 @@ export default function Home() {
           </Pressable>
         </View>
       </ScrollView>
+
+      {/* Mot de bienvenue « bêta » (une seule fois) */}
+      <BetaNotice />
 
       {/* Sélecteur d'humeur */}
       <Modal visible={moodOpen} transparent animationType="slide" onRequestClose={() => setMoodOpen(false)}>
