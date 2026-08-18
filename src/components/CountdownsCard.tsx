@@ -100,6 +100,9 @@ export function CountdownsCard() {
                     {d < 0 ? 'passé' : d === 0 ? "aujourd'hui" : d === 1 ? 'jour' : 'jours'}
                   </Text>
                 </View>
+                <Pressable onPress={() => remove(c)} hitSlop={10} style={styles.del}>
+                  <Text style={styles.delText}>✕</Text>
+                </Pressable>
               </Pressable>
             );
           })}
@@ -167,6 +170,16 @@ function formatDateFr(iso: string) {
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  del: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.cremeDoux,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 2,
+  },
+  delText: { fontSize: 13, color: colors.texteGris, fontWeight: '700' },
   days: { fontFamily: fonts.monoMedium, fontSize: 26, color: colors.prune },
   daysLabel: { fontFamily: fonts.bodyMedium, fontSize: 10, color: colors.texteGris },
   backdrop: { flex: 1, backgroundColor: colors.overlay },

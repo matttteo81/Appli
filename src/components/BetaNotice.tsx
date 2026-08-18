@@ -55,6 +55,9 @@ export function BetaNotice() {
               L'appli évolue encore : si tu croises un bug, une idée ou un petit
               détail à améliorer, dis-le-moi — <ThemedText variant="bodyMedium" color={colors.corail}>tous les retours sont les bienvenus</ThemedText> !
             </ThemedText>
+            <ThemedText variant="body" center color={colors.texteGris} style={{ marginTop: spacing.sm }}>
+              À tout moment : <ThemedText variant="bodyMedium" color={colors.prune}>Réglages → Avis bêta 💬</ThemedText>
+            </ThemedText>
 
             <Pressable style={styles.btn} onPress={close}>
               <Text style={styles.btnText}>C'est parti ✨</Text>

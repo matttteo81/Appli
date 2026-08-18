@@ -254,7 +254,7 @@ export default function Parametres() {
           <ThemedText variant="label" color={colors.texteGris} style={styles.section}>BÊTA</ThemedText>
           <View style={styles.group}>
             <Row
-              title="Faire un retour 💬"
+              title="Avis bêta 💬"
               subtitle="Un bug, une idée, un détail à améliorer ? Dis-le-moi !"
               onPress={() => router.push('/retour')}
             />
