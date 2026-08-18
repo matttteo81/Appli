@@ -276,6 +276,8 @@ export default function Capsules() {
                 </Pressable>
                 {showPicker ? (
                   <DateTimePicker
+                    themeVariant="light"
+                    accentColor={colors.corail}
                     value={openDate}
                     mode="date"
                     display={Platform.OS === 'ios' ? 'inline' : 'default'}

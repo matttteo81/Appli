@@ -207,6 +207,8 @@ export default function Journal() {
             )}
             {showPicker && (
               <DateTimePicker
+                themeVariant="light"
+                accentColor={colors.corail}
                 value={date}
                 mode="date"
                 display={Platform.OS === 'ios' ? 'inline' : 'default'}

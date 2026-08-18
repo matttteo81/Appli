@@ -209,6 +209,8 @@ export default function Notes() {
             ) : null}
             {pickerOpen ? (
               <DateTimePicker
+                themeVariant="light"
+                accentColor={colors.corail}
                 value={revealAt}
                 mode="datetime"
                 minimumDate={new Date()}

@@ -269,6 +269,8 @@ export default function Agenda() {
           <Input placeholder={`Titre (ex : ${type.label})`} value={title} onChangeText={setTitle} />
           <View style={{ alignItems: 'center' }}>
             <DateTimePicker
+              themeVariant="light"
+              accentColor={colors.corail}
               value={date}
               mode="date"
               display={Platform.OS === 'ios' ? 'inline' : 'default'}
@@ -281,7 +283,7 @@ export default function Agenda() {
           </View>
           {hasTime ? (
             <View style={{ alignItems: 'center' }}>
-              <DateTimePicker value={time} mode="time" onChange={(_e, d) => d && setTime(d)} />
+              <DateTimePicker themeVariant="light" accentColor={colors.corail} value={time} mode="time" onChange={(_e, d) => d && setTime(d)} />
             </View>
           ) : null}
           <Input placeholder="Note (facultatif)" value={note} onChangeText={setNote} />

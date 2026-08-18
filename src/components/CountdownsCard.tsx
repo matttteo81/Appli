@@ -132,6 +132,8 @@ export function CountdownsCard() {
           <Input placeholder={`Titre (ex : ${type.label})`} value={title} onChangeText={setTitle} />
           <View style={{ alignItems: 'center' }}>
             <DateTimePicker
+              themeVariant="light"
+              accentColor={colors.corail}
               value={date}
               mode="date"
               display={Platform.OS === 'ios' ? 'inline' : 'default'}

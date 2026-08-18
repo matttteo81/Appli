@@ -449,6 +449,8 @@ export default function Home() {
           </ThemedText>
           <View style={{ alignItems: 'center' }}>
             <DateTimePicker
+              themeVariant="light"
+              accentColor={colors.corail}
               value={tempDate}
               mode="date"
               display={Platform.OS === 'ios' ? 'inline' : 'default'}
