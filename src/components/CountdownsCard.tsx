@@ -30,6 +30,12 @@ export function CountdownsCard() {
   const couple = useAuth((s) => s.couple);
   const { rows } = useCoupleTable<Countdown>('countdowns', 'date', true);
 
+  // Suppression optimiste : on masque tout de suite la ligne, sans attendre
+  // l'événement temps réel (les événements DELETE ne portent pas couple_id,
+  // donc le rechargement automatique ne se déclenche pas pour une suppression).
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const visible = rows.filter((r) => !hidden.has(r.id));
+
   const [open, setOpen] = useState(false);
   const [type, setType] = useState(TYPES[0]);
   const [title, setTitle] = useState('');
@@ -52,14 +58,33 @@ export function CountdownsCard() {
     setDate(plusDays(30));
   };
 
+  const doDelete = async (c: Countdown) => {
+    // On masque immédiatement (ressenti instantané).
+    setHidden((prev) => new Set(prev).add(c.id));
+    const { data, error } = await supabase
+      .from('countdowns')
+      .delete()
+      .eq('id', c.id)
+      .select();
+    // Si la base refuse (erreur ou 0 ligne effacée), on réaffiche et on prévient.
+    if (error || !data || data.length === 0) {
+      setHidden((prev) => {
+        const next = new Set(prev);
+        next.delete(c.id);
+        return next;
+      });
+      Alert.alert(
+        'Suppression impossible',
+        error?.message ??
+          "La base a refusé la suppression de ce compte à rebours. Réessaie dans un instant.",
+      );
+    }
+  };
+
   const remove = (c: Countdown) =>
     Alert.alert('Supprimer', `Retirer « ${c.title} » ?`, [
       { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Supprimer',
-        style: 'destructive',
-        onPress: () => supabase.from('countdowns').delete().eq('id', c.id),
-      },
+      { text: 'Supprimer', style: 'destructive', onPress: () => doDelete(c) },
     ]);
 
   return (
@@ -75,13 +100,13 @@ export function CountdownsCard() {
         </Pressable>
       </View>
 
-      {rows.length === 0 ? (
+      {visible.length === 0 ? (
         <ThemedText variant="body" color={colors.texteGris} style={{ marginTop: 6 }}>
           Ajoutez vos dates importantes 💫
         </ThemedText>
       ) : (
         <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
-          {rows.map((c) => {
+          {visible.map((c) => {
             const d = daysUntil(c.date);
             return (
               <Pressable key={c.id} onLongPress={() => remove(c)} style={styles.row}>
