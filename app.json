@@ -9,7 +9,7 @@
     "scheme": "fil",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "appleTeamId": "JK46G84XCP",
       "bundleIdentifier": "com.matteo81.fil",
       "entitlements": {
