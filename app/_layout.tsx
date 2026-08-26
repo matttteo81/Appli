@@ -1,4 +1,7 @@
 import 'react-native-gesture-handler';
+// Doit être importé très tôt : neutralise le plantage natif du fetch Expo SDK 57
+// (en-têtes non conformes) qui fermait l'app au moment de la connexion.
+import '../src/lib/fetchFix';
 import React, { useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Stack, useRouter, useSegments } from 'expo-router';
