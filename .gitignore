@@ -43,3 +43,6 @@ eas.json.local
 # generated native folders
 /ios
 /android
+
+# Temp build helper files (Claude)
+scratch_*
