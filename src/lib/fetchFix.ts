@@ -54,6 +54,35 @@ function cleanHeaders(h: AnyHeaders): Record<string, string> {
 
 const g: any = globalThis;
 
+/**
+ * Filet de sécurité GLOBAL contre les crashs.
+ *
+ * En production, une erreur JavaScript non rattrapée fait FERMER l'app : React
+ * Native appelle son gestionnaire fatal → RCTFatal → abort(). Or plusieurs
+ * appels asynchrones au démarrage / à la connexion ne sont pas protégés (ex.
+ * un rafraîchissement de session déclenché en arrière-plan). Une simple erreur
+ * réseau y devenait donc FATALE → « l'app se ferme quand on se connecte ».
+ *
+ * On remplace le gestionnaire global par un gestionnaire qui journalise mais ne
+ * fait PAS planter l'app : mieux vaut un état momentanément dégradé (qui se
+ * répare au rafraîchissement suivant) qu'une fermeture brutale.
+ */
+try {
+  const EU: any = g.ErrorUtils;
+  if (EU && typeof EU.setGlobalHandler === 'function' && !EU.__filHandler) {
+    EU.setGlobalHandler((error: any, isFatal?: boolean) => {
+      try {
+        // eslint-disable-next-line no-console
+        console.error('[Fil] erreur JS non rattrapée (ignorée) :', !!isFatal, error?.message ?? error);
+      } catch {}
+      // On ne relance PAS le comportement par défaut (qui ferait abort()).
+    });
+    EU.__filHandler = true;
+  }
+} catch {
+  // ErrorUtils indisponible : on ne fait rien.
+}
+
 // Référence au fetch en place AVANT notre remplacement (le fetch natif d'Expo).
 const baseFetch: typeof fetch =
   (g.fetch && (g.fetch as any).__filBase) || g.fetch;

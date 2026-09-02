@@ -41,7 +41,9 @@ export const useAuth = create<AuthState>((set, get) => ({
     supabase.auth.onAuthStateChange((_event, session) => {
       set({ session });
       if (session) {
-        get().refresh();
+        // IMPORTANT : jamais sans .catch — une erreur ici serait non rattrapée
+        // et ferait planter l'app en production.
+        get().refresh().catch(() => {});
       } else {
         set({ profile: null, couple: null, partner: null });
       }
@@ -54,6 +56,7 @@ export const useAuth = create<AuthState>((set, get) => ({
     if (!session) return;
     const userId = session.user.id;
 
+    try {
     // 1) Profil de l'utilisateur — on le crée s'il n'existe pas encore.
     let { data: profile } = await supabase
       .from('profiles')
@@ -104,6 +107,10 @@ export const useAuth = create<AuthState>((set, get) => ({
       set({ partner: (partner as Profile) ?? null });
     } else {
       set({ couple: null, partner: null });
+    }
+    } catch {
+      // Une erreur (réseau, etc.) ne doit jamais remonter : sinon, appelée sans
+      // .catch depuis onAuthStateChange, elle ferait planter l'app.
     }
   },
 
