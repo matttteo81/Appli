@@ -2,17 +2,46 @@
 -- Batch 20 : correctif « l'œuf ne réapparaît pas » 🥚
 -- =====================================================================
 -- Symptôme : sur la Ferme, le bouton « 🥚 Nouvel œuf » est cliquable mais
--- appuyer dessus ne fait rien (aucun œuf, aucune erreur).
+-- appuyer dessus ne fait rien (aucun œuf, aucune erreur), ou une alerte
+-- « malformed array literal: "cat" ».
 --
--- Cause : si la ligne `farm` du couple n'existe pas (jamais créée, ou
--- supprimée lors d'un ré-appairage), `pf_new_egg` faisait un UPDATE qui ne
--- touchait AUCUNE ligne — donc il rendait sans rien changer et sans erreur.
+-- Cause RACINE : `_pf_species` construisait la liste des espèces avec
+--   pool || 'cat'
+-- ce que PostgreSQL interprète comme une CONCATÉNATION de tableaux → il
+-- essaie de lire 'cat' comme un littéral de tableau → « malformed array
+-- literal ». Pour les couples remplissant une condition de déblocage
+-- (7 j de série → lapin, 30 j → chien, 100 j ensemble → chat), la fonction
+-- plantait. Dans `pf_ensure`, cette erreur faisait échouer silencieusement
+-- la création de la ligne `farm` → aucun œuf n'apparaissait.
 --
--- Correctif : `pf_new_egg` (et `pf_ensure`) garantissent d'abord la présence
--- de la ligne ferme (auto-réparation). Aucune modification de l'app requise.
+-- Correctif :
+--   1. `_pf_species` : `array_append(pool, 'x')` au lieu de `pool || 'x'`.
+--   2. `pf_new_egg`/`pf_ensure` : auto-réparation de la ligne ferme.
+-- Aucune modification de l'app requise (correctif serveur uniquement).
 --
 -- À coller dans Supabase → SQL Editor → Run.
 -- =====================================================================
+
+-- Espèce au hasard PARMI les espèces débloquées (append d'élément sans
+-- ambiguïté : array_append, pas l'opérateur || qui prêtait à confusion).
+create or replace function public._pf_species(p_couple uuid) returns text
+language plpgsql set search_path = public as $$
+declare
+  c public.couples;
+  dtogether int := 0;
+  pool text[] := array['hen','pig'];
+begin
+  select * into c from public.couples where id = p_couple;
+  if c.together_since is not null then
+    dtogether := greatest(0, (current_date - c.together_since));
+  end if;
+  if coalesce(c.streak_count, 0) >= 7  then pool := array_append(pool, 'rabbit'); end if;
+  if coalesce(c.streak_count, 0) >= 30 then pool := array_append(pool, 'dog');    end if;
+  if dtogether >= 100                  then pool := array_append(pool, 'cat');    end if;
+  return pool[floor(random() * array_length(pool, 1)) + 1];
+end; $$;
+
+revoke execute on function public._pf_species(uuid) from anon, public;
 
 -- pf_ensure : garantit la ligne ferme + un premier œuf si la ferme est vide.
 create or replace function public.pf_ensure(p_couple uuid)
