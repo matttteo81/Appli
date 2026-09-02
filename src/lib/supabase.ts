@@ -1,3 +1,4 @@
+import { safeFetch } from './fetchFix';
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
@@ -35,5 +36,8 @@ export const supabase = createClient<Database>(
       persistSession: true,
       detectSessionInUrl: false,
     },
+    // On force Supabase à utiliser notre fetch sécurisé : il nettoie les
+    // en-têtes avant le fetch natif d'Expo (qui plante sinon à la connexion).
+    global: { fetch: safeFetch },
   },
 );
