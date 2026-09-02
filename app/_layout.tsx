@@ -7,7 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AppState } from 'react-native';
+import { AppState, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import { useFonts } from 'expo-font';
@@ -109,6 +109,10 @@ export default function RootLayout() {
             <NotificationBridge />
             <LocationBridge />
             <PresenceBridge />
+            <ErrorBoundary
+              autoRetry
+              fallback={<View style={{ flex: 1, backgroundColor: '#D8C7AC' }} />}
+            >
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="pair" />
@@ -132,6 +136,7 @@ export default function RootLayout() {
                 options={{ presentation: 'transparentModal', animation: 'fade' }}
               />
             </Stack>
+            </ErrorBoundary>
             <LockGate />
             <Toast />
             <OfflineBanner />
@@ -181,6 +186,7 @@ function AuthGate() {
   const segments = useSegments();
   const session = useAuth((s) => s.session);
   const profile = useAuth((s) => s.profile);
+  const couple = useAuth((s) => s.couple);
 
   useEffect(() => {
     const group = segments[0];
@@ -198,6 +204,12 @@ function AuthGate() {
       if (!inPair) router.replace('/pair');
       return;
     }
+    // Le profil référence un couple mais l'objet couple n'est pas encore
+    // chargé : on ATTEND avant d'afficher les onglets, pour que l'accueil se
+    // monte avec des données complètes (comme à une réouverture à froid). Sinon,
+    // il se rendait avec des données partielles pendant la transition, ce qui
+    // pouvait lever une erreur de rendu fatale (crash à la connexion).
+    if (!couple) return;
     // Connecté + en couple : on autorise les onglets, le popup nudge
     // et l'écran « Ensemble ».
     const allowed =
@@ -220,7 +232,7 @@ function AuthGate() {
     if (!allowed) {
       router.replace('/(tabs)');
     }
-  }, [session, profile, segments, router]);
+  }, [session, profile, couple, segments, router]);
 
   return null;
 }
