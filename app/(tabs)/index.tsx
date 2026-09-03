@@ -19,7 +19,6 @@ import { Button, Card, ThemedText } from '../../src/components/ui';
 import { TwinSky } from '../../src/components/TwinSky';
 import { QuestionCard } from '../../src/components/QuestionCard';
 import { CountdownsCard } from '../../src/components/CountdownsCard';
-import { BetaNotice } from '../../src/components/BetaNotice';
 import { MilestoneCard } from '../../src/components/MilestoneCard';
 import { getTodayMilestone, scheduleAnniversaryNotification } from '../../src/lib/anniversary';
 import { usePartnerPresence } from '../../src/hooks/usePartnerPresence';
@@ -416,9 +415,6 @@ export default function Home() {
           </Pressable>
         </View>
       </ScrollView>
-
-      {/* Mot de bienvenue « bêta » (une seule fois) */}
-      <BetaNotice />
 
       {/* Sélecteur d'humeur */}
       <Modal visible={moodOpen} transparent animationType="slide" onRequestClose={() => setMoodOpen(false)}>

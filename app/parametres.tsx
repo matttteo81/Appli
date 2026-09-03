@@ -214,8 +214,6 @@ export default function Parametres() {
               onPress={changeTogetherPhoto}
               disabled={uploadingTogether}
             />
-            <View style={styles.sep} />
-            <Row title="Photo du widget" subtitle="Bientôt (widget photo à venir)" disabled />
           </View>
         </View>
 
@@ -249,13 +247,13 @@ export default function Parametres() {
           </View>
         </View>
 
-        {/* Bêta */}
+        {/* Contact */}
         <View>
-          <ThemedText variant="label" color={colors.texteGris} style={styles.section}>BÊTA</ThemedText>
+          <ThemedText variant="label" color={colors.texteGris} style={styles.section}>NOUS CONTACTER</ThemedText>
           <View style={styles.group}>
             <Row
-              title="Avis bêta 💬"
-              subtitle="Un bug, une idée, un détail à améliorer ? Dis-le-moi !"
+              title="Nous écrire 💬"
+              subtitle="Une question, une idée, un mot doux ? Écris-nous."
               onPress={() => router.push('/retour')}
             />
           </View>

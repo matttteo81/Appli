@@ -9,8 +9,8 @@ import { supabase } from '../src/lib/supabase';
 import { toast } from '../src/store/toast';
 
 /**
- * Écran « Faire un retour » : le testeur écrit un message, qui est enregistré
- * dans la table `feedback` (lisible dans le tableau de bord Supabase).
+ * Écran « Nous écrire » : l'utilisateur envoie un message, enregistré dans la
+ * table `feedback` (lisible dans le tableau de bord Supabase).
  */
 export default function Retour() {
   const router = useRouter();
@@ -41,8 +41,8 @@ export default function Retour() {
   return (
     <Screen edges={['top']}>
       <ScreenHeader
-        title="Faire un retour"
-        subtitle="Un bug, une idée, un détail à améliorer…"
+        title="Nous écrire"
+        subtitle="Une question, une idée, un mot doux…"
         onBack={() => router.back()}
       />
       <KeyboardAvoidingView
@@ -52,8 +52,8 @@ export default function Retour() {
       >
         <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
           <ThemedText variant="body" color={colors.texteGris}>
-            Fil est en bêta 🧪 Dis-moi tout : ce qui te plaît, ce qui bug, ce qui
-            manque. Chaque retour aide à améliorer l'appli 💛
+            Une question, une envie, un petit mot ? Écris-nous — on lit chaque
+            message avec attention 💛
           </ThemedText>
           <Input
             placeholder="Ton message…"
@@ -63,7 +63,7 @@ export default function Retour() {
             style={{ minHeight: 150, textAlignVertical: 'top' }}
           />
           <Button
-            title="Envoyer mon retour"
+            title="Envoyer"
             onPress={send}
             loading={sending}
             disabled={msg.trim().length === 0}
