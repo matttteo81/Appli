@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppState, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import '../src/lib/webAlert';
 import * as Notifications from 'expo-notifications';
 import { useFonts } from 'expo-font';
 import {
@@ -131,6 +132,7 @@ export default function RootLayout() {
               <Stack.Screen name="retour" />
               <Stack.Screen name="retrouvailles" />
               <Stack.Screen name="capsules" />
+              <Stack.Screen name="questions" />
               <Stack.Screen
                 name="nudge"
                 options={{ presentation: 'transparentModal', animation: 'fade' }}
@@ -187,8 +189,12 @@ function AuthGate() {
   const session = useAuth((s) => s.session);
   const profile = useAuth((s) => s.profile);
   const couple = useAuth((s) => s.couple);
+  const recovering = useAuth((s) => s.recovering);
 
   useEffect(() => {
+    // Réinitialisation du mot de passe en cours : on ne redirige pas, l'écran
+    // doit rester affiché le temps de saisir le nouveau mot de passe.
+    if (recovering) return;
     const group = segments[0];
     const inAuth = group === '(auth)';
     const inPair = group === 'pair';
@@ -228,11 +234,12 @@ function AuthGate() {
       group === 'confidentialite' ||
       group === 'retour' ||
       group === 'retrouvailles' ||
-      group === 'capsules';
+      group === 'capsules' ||
+      group === 'questions';
     if (!allowed) {
       router.replace('/(tabs)');
     }
-  }, [session, profile, couple, segments, router]);
+  }, [session, profile, couple, segments, router, recovering]);
 
   return null;
 }

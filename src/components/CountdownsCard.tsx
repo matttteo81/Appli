@@ -9,6 +9,11 @@ import {
   View,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
+import { decode } from 'base64-arraybuffer';
+import { gpsFromExif } from '../lib/exifgps';
+import { pushToPartner } from '../lib/push';
 import { Button, Card, Input, ThemedText } from './ui';
 import { colors } from '../theme/colors';
 import { fonts, radius, spacing } from '../theme/typography';
@@ -28,6 +33,8 @@ const TYPES = [
 
 export function CountdownsCard() {
   const couple = useAuth((s) => s.couple);
+  const profile = useAuth((s) => s.profile);
+  const partner = useAuth((s) => s.partner);
   const { rows } = useCoupleTable<Countdown>('countdowns', 'date', true);
 
   // Suppression optimiste : on masque tout de suite la ligne, sans attendre
@@ -81,6 +88,88 @@ export function CountdownsCard() {
     }
   };
 
+  // ── Compte à rebours terminé → souvenir dans le journal ──────────────────
+  const [keeping, setKeeping] = useState<Countdown | null>(null);
+  const [note, setNote] = useState('');
+  const [photo, setPhoto] = useState<PickedPhoto | null>(null);
+  const [keepSaving, setKeepSaving] = useState(false);
+
+  const openKeep = (c: Countdown) => {
+    setNote('');
+    setPhoto(null);
+    setKeeping(c);
+  };
+
+  const pickPhoto = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Accès refusé', 'Autorise l’accès aux photos dans les réglages.');
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.6,
+      base64: true,
+      exif: true,
+    });
+    if (res.canceled || !res.assets[0]?.base64) return;
+    const asset = res.assets[0];
+    const ext = (asset.uri.split('.').pop() || 'jpg').toLowerCase();
+    const loc = gpsFromExif(asset.exif);
+    setPhoto({
+      uri: asset.uri,
+      base64: asset.base64!,
+      ext: ext === 'png' ? 'png' : 'jpg',
+      lat: loc?.lat ?? null,
+      lng: loc?.lng ?? null,
+    });
+  };
+
+  const keepAsMemory = async () => {
+    const c = keeping;
+    if (!c || !couple || !profile) return;
+    setKeepSaving(true);
+    try {
+      let photo_path: string | null = null;
+      if (photo) {
+        photo_path = `${couple.id}/mem-${Date.now()}.${photo.ext}`;
+        const { error } = await supabase.storage
+          .from('photos')
+          .upload(photo_path, decode(photo.base64), {
+            contentType: photo.ext === 'png' ? 'image/png' : 'image/jpeg',
+          });
+        if (error) throw error;
+      }
+      const { error: insErr } = await supabase.from('memories').insert({
+        couple_id: couple.id,
+        author_id: profile.id,
+        title: `${c.emoji} ${c.title}`,
+        body: note.trim() || null,
+        photo_path,
+        memory_date: c.date,
+        lat: photo?.lat ?? null,
+        lng: photo?.lng ?? null,
+      });
+      if (insErr) throw insErr;
+      // Le souvenir est enregistré : on peut retirer le compte à rebours.
+      setHidden((prev) => new Set(prev).add(c.id));
+      await supabase.from('countdowns').delete().eq('id', c.id);
+      pushToPartner(
+        partner?.id,
+        `📔 ${profile.display_name}`,
+        `a gardé « ${c.title} » en souvenir 💛`,
+      );
+      setKeeping(null);
+    } catch (e: any) {
+      Alert.alert(
+        'Enregistrement impossible',
+        e?.message ?? 'Le souvenir n’a pas pu être enregistré. Réessaie dans un instant.',
+      );
+    } finally {
+      setKeepSaving(false);
+    }
+  };
+
   const remove = (c: Countdown) =>
     Alert.alert('Supprimer', `Retirer « ${c.title} » ?`, [
       { text: 'Annuler', style: 'cancel' },
@@ -119,12 +208,24 @@ export function CountdownsCard() {
                     {formatDateFr(c.date)}
                   </ThemedText>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.days}>{d < 0 ? '✓' : d}</Text>
-                  <Text style={styles.daysLabel}>
-                    {d < 0 ? 'passé' : d === 0 ? "aujourd'hui" : d === 1 ? 'jour' : 'jours'}
-                  </Text>
-                </View>
+                {d < 0 ? (
+                  <Pressable
+                    onPress={() => openKeep(c)}
+                    hitSlop={6}
+                    style={styles.keep}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Garder « ${c.title} » en souvenir`}
+                  >
+                    <Text style={styles.keepText}>📔 Garder</Text>
+                  </Pressable>
+                ) : (
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.days}>{d}</Text>
+                    <Text style={styles.daysLabel}>
+                      {d === 0 ? "aujourd'hui" : d === 1 ? 'jour' : 'jours'}
+                    </Text>
+                  </View>
+                )}
                 <Pressable onPress={() => remove(c)} hitSlop={10} style={styles.del}>
                   <Text style={styles.delText}>✕</Text>
                 </Pressable>
@@ -168,9 +269,49 @@ export function CountdownsCard() {
           <Button title="Ajouter" onPress={add} loading={saving} />
         </View>
       </Modal>
+
+      <Modal
+        visible={!!keeping}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setKeeping(null)}
+      >
+        <Pressable style={styles.backdrop} onPress={() => setKeeping(null)} />
+        <View style={styles.sheet}>
+          <ThemedText variant="title" center>
+            C’était comment ? {keeping?.emoji}
+          </ThemedText>
+          <ThemedText variant="body" color={colors.texteGris} center>
+            « {keeping?.title} » — {keeping ? formatDateFr(keeping.date) : ''}.{'\n'}
+            Gardez-en une trace dans votre journal.
+          </ThemedText>
+          <Input
+            placeholder="Quelques mots sur ce moment…"
+            value={note}
+            onChangeText={setNote}
+            multiline
+          />
+          {photo ? (
+            <Pressable onPress={pickPhoto}>
+              <Image source={{ uri: photo.uri }} style={styles.preview} contentFit="cover" />
+            </Pressable>
+          ) : (
+            <Button title="＋ Ajouter une photo" variant="secondary" onPress={pickPhoto} />
+          )}
+          <Button title="Garder en souvenir" onPress={keepAsMemory} loading={keepSaving} />
+        </View>
+      </Modal>
     </Card>
   );
 }
+
+type PickedPhoto = {
+  uri: string;
+  base64: string;
+  ext: 'jpg' | 'png';
+  lat: number | null;
+  lng: number | null;
+};
 
 function plusDays(n: number) {
   const d = new Date();
@@ -206,6 +347,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: 2,
   },
+  keep: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.md,
+    backgroundColor: colors.ambre,
+  },
+  keepText: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.encre },
+  preview: { width: '100%', height: 160, borderRadius: radius.md },
   delText: { fontSize: 13, color: colors.texteGris, fontWeight: '700' },
   days: { fontFamily: fonts.monoMedium, fontSize: 26, color: colors.prune },
   daysLabel: { fontFamily: fonts.bodyMedium, fontSize: 10, color: colors.texteGris },

@@ -18,6 +18,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Button, Card, ThemedText } from '../../src/components/ui';
 import { TwinSky } from '../../src/components/TwinSky';
 import { QuestionCard } from '../../src/components/QuestionCard';
+import { PartnerMoodChip } from '../../src/components/PartnerMoodChip';
 import { CountdownsCard } from '../../src/components/CountdownsCard';
 import { MilestoneCard } from '../../src/components/MilestoneCard';
 import { getTodayMilestone, scheduleAnniversaryNotification } from '../../src/lib/anniversary';
@@ -81,10 +82,10 @@ export default function Home() {
       if (couple?.id) {
         loadHomeBadges(couple.id, partner?.id).then((b) => { if (active) setBadges(b); });
         // Rafraîchit les widgets média (dernière photo + dessin partagé).
-        syncMediaWidgets(couple.id);
+        syncMediaWidgets(couple.id, partner?.widget_photo_path);
       }
       return () => { active = false; };
-    }, [couple?.id, partner?.id]),
+    }, [couple?.id, partner?.id, partner?.widget_photo_path]),
   );
 
   // Série (streak) : marque l'activité du jour et récupère le compteur.
@@ -281,15 +282,7 @@ export default function Home() {
                   TOI
                 </ThemedText>
               </Pressable>
-              <View style={styles.moodChip}>
-                <Text style={styles.moodEmoji}>{partner?.mood_emoji ?? '🌙'}</Text>
-                <ThemedText variant="body" center>
-                  {partner?.mood_label ?? 'En attente…'}
-                </ThemedText>
-                <ThemedText variant="label" color={colors.texteGris}>
-                  {(partner?.display_name ?? 'ELLE/LUI').toUpperCase()}
-                </ThemedText>
-              </View>
+              <PartnerMoodChip me={profile} partner={partner} />
             </View>
           </Card>
 

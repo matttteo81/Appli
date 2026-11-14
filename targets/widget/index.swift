@@ -320,7 +320,9 @@ struct PhotoView: View {
   var body: some View {
     let count = Shared.int("photo_count")
     let key = count > 0 ? "photo_b64_\(entry.index)" : "photo_b64"
-    let b64 = Shared.str(key) ?? Shared.str("photo_b64")
+    // Photo choisie par ta moitié (Paramètres → Photo du widget) : prioritaire.
+    // Sinon, défilement des dernières photos partagées.
+    let b64 = Shared.str("pinned_photo_b64") ?? Shared.str(key) ?? Shared.str("photo_b64")
     ZStack {
       if let b64 = b64, let data = Data(base64Encoded: b64), let ui = UIImage(data: data) {
         Image(uiImage: ui)
@@ -348,7 +350,7 @@ struct PhotoWidget: Widget {
       PhotoView(entry: entry)
     }
     .configurationDisplayName("Photos partagées")
-    .description("Vos dernières photos, en défilement automatique.")
+    .description("La photo choisie par ta moitié, ou vos dernières photos en défilement.")
     .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
   }
 }

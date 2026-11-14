@@ -30,6 +30,7 @@ import { colors } from '../../src/theme/colors';
 import { radius, spacing } from '../../src/theme/typography';
 import { useCoupleTable } from '../../src/hooks/useCoupleTable';
 import { useAuth } from '../../src/store/auth';
+import { useTabBarSpace } from '../../src/theme/tabBar';
 import { supabase } from '../../src/lib/supabase';
 import { pushToPartner } from '../../src/lib/push';
 import { markSeen } from '../../src/lib/homeBadges';
@@ -43,6 +44,7 @@ const COLS = 3;
 const SIZE = (Dimensions.get('window').width - GAP * (COLS - 1)) / COLS;
 
 export default function Album() {
+  const tabSpace = useTabBarSpace();
   const { rows, loading, reload } = useCoupleTable<Photo>('photos');
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => { setRefreshing(true); await reload(); setRefreshing(false); };
@@ -201,7 +203,7 @@ export default function Album() {
         keyExtractor={(p) => p.id}
         numColumns={COLS}
         columnWrapperStyle={{ gap: GAP }}
-        contentContainerStyle={{ gap: GAP, padding: spacing.md, paddingBottom: 160 }}
+        contentContainerStyle={{ gap: GAP, padding: spacing.md, paddingBottom: tabSpace + 110 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.prune} />}
         ListHeaderComponent={
           <View style={styles.routineCard}>
@@ -269,7 +271,7 @@ export default function Album() {
         )}
       />
 
-      <View style={styles.addBar}>
+      <View style={[styles.addBar, { bottom: tabSpace }]}>
         <Button title="＋ Ajouter une photo" onPress={() => pick()} />
       </View>
 
@@ -416,11 +418,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: spacing.md,
-    paddingBottom: spacing.lg,
-    backgroundColor: colors.creme,
-    borderTopWidth: 1,
-    borderTopColor: colors.bordure,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   backdrop: { flex: 1, backgroundColor: colors.overlay },
   sheet: {

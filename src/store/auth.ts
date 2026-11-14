@@ -10,7 +10,11 @@ type AuthState = {
   profile: Profile | null;
   couple: Couple | null;
   partner: Profile | null;
+  /** Vrai pendant la réinitialisation du mot de passe : la session existe
+   *  déjà (code validé) mais on reste sur l'écran pour saisir le nouveau. */
+  recovering: boolean;
 
+  setRecovering: (v: boolean) => void;
   init: () => Promise<void>;
   refresh: () => Promise<void>;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
@@ -30,6 +34,11 @@ export const useAuth = create<AuthState>((set, get) => ({
   profile: null,
   couple: null,
   partner: null,
+  recovering: false,
+
+  setRecovering(v) {
+    set({ recovering: v });
+  },
 
   async init() {
     const { data } = await supabase.auth.getSession();

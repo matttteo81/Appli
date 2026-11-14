@@ -18,6 +18,7 @@ import { radius, spacing } from '../src/theme/typography';
 import { useAuth } from '../src/store/auth';
 import { useLock } from '../src/store/lock';
 import { supabase } from '../src/lib/supabase';
+import { pushToPartner } from '../src/lib/push';
 import { refreshMyLocation } from '../src/lib/autoLocation';
 
 function Row({
@@ -61,6 +62,8 @@ export default function Parametres() {
   const couple = useAuth((s) => s.couple);
   const updateCouple = useAuth((s) => s.updateCouple);
   const profile = useAuth((s) => s.profile);
+  const partner = useAuth((s) => s.partner);
+  const partnerName = partner?.display_name ?? 'ta moitié';
   const updateProfile = useAuth((s) => s.updateProfile);
   const signOut = useAuth((s) => s.signOut);
   const deleteAccount = useAuth((s) => s.deleteAccount);
@@ -94,6 +97,7 @@ export default function Parametres() {
   const [uploadingBg, setUploadingBg] = useState(false);
   const [uploadingTogether, setUploadingTogether] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingWidget, setUploadingWidget] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const pickAndUpload = async (
@@ -134,6 +138,30 @@ export default function Parametres() {
     pickAndUpload('home', setUploadingBg, (path) => updateCouple({ home_photo_path: path }));
   const changeTogetherPhoto = () =>
     pickAndUpload('together', setUploadingTogether, (path) => updateCouple({ together_photo_path: path }));
+  const pickWidgetPhoto = () =>
+    pickAndUpload('widget', setUploadingWidget, async (path) => {
+      await updateProfile({ widget_photo_path: path });
+      pushToPartner(
+        partner?.id,
+        `🖼️ ${profile?.display_name ?? 'Ta moitié'}`,
+        't’a choisi une photo pour ton widget — ouvre Fil pour la voir 💛',
+      );
+    });
+  // Déjà une photo choisie : on propose de la changer ou de la retirer.
+  const changeWidgetPhoto = () => {
+    if (!profile?.widget_photo_path) return pickWidgetPhoto();
+    Alert.alert('Photo du widget', `C’est la photo que ${partnerName} voit sur son écran d’accueil.`, [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Retirer',
+        style: 'destructive',
+        onPress: () => {
+          updateProfile({ widget_photo_path: null }).catch(() => {});
+        },
+      },
+      { text: 'Changer', onPress: pickWidgetPhoto },
+    ]);
+  };
   const changeAvatar = () =>
     pickAndUpload('avatar', setUploadingAvatar, (path) => updateProfile({ avatar_path: path }));
 
@@ -213,6 +241,19 @@ export default function Parametres() {
               subtitle={uploadingTogether ? 'Envoi…' : 'La photo de votre compteur'}
               onPress={changeTogetherPhoto}
               disabled={uploadingTogether}
+            />
+            <View style={styles.sep} />
+            <Row
+              title="Photo du widget"
+              subtitle={
+                uploadingWidget
+                  ? 'Envoi…'
+                  : profile?.widget_photo_path
+                    ? `Choisie — ${partnerName} la voit sur son écran d’accueil`
+                    : `Choisis la photo que ${partnerName} verra sur son écran d’accueil`
+              }
+              onPress={changeWidgetPhoto}
+              disabled={uploadingWidget}
             />
           </View>
         </View>

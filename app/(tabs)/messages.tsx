@@ -5,6 +5,7 @@ import {
   Animated,
   Easing,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -12,6 +13,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -29,6 +31,7 @@ import { colors } from '../../src/theme/colors';
 import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useCoupleTable } from '../../src/hooks/useCoupleTable';
 import { useAuth } from '../../src/store/auth';
+import { useTabBarSpace } from '../../src/theme/tabBar';
 import { supabase } from '../../src/lib/supabase';
 import type { Message, SavedGif } from '../../src/types/db';
 import { BUILTIN_GIFS, gifSource } from '../../src/lib/gifs';
@@ -43,22 +46,94 @@ import { pushToPartner } from '../../src/lib/push';
 import { toast } from '../../src/store/toast';
 import { VoiceRecorder } from '../../src/components/VoiceRecorder';
 import { usePartnerPresence } from '../../src/hooks/usePartnerPresence';
+import { TypingBubble } from '../../src/components/TypingBubble';
 
 const MSG_REACTIONS = ['❤️', '😂', '😮', '😢', '👍', '🔥'];
 
-/** Rangée de message qui « arrive » en douceur (fondu + montée + zoom). */
-function MsgRow({ mine, children }: { mine: boolean; children: React.ReactNode }) {
-  const v = useRef(new Animated.Value(0)).current;
+type MsgAnim = 'send' | 'receive' | 'none';
+
+/**
+ * Rangée de message, animée comme dans Messages sur iPhone :
+ *  - 'send'    : ta bulle part du champ de saisie et s'envole jusqu'à sa place
+ *                (on mesure la distance réelle entre le champ et la bulle) ;
+ *  - 'receive' : la bulle de ta moitié surgit depuis son coin bas-gauche ;
+ *  - 'none'    : message déjà là à l'ouverture → affiché sans animation.
+ */
+function MsgRow({
+  mine,
+  anim,
+  fromY,
+  children,
+}: {
+  mine: boolean;
+  anim: MsgAnim;
+  /** Position verticale (écran) du champ de saisie, pour l'animation d'envoi. */
+  fromY?: () => number;
+  children: React.ReactNode;
+}) {
+  const v = useRef(new Animated.Value(anim === 'none' ? 1 : 0)).current;
+  const ty = useRef(new Animated.Value(0)).current;
+  const shown = useRef(new Animated.Value(anim === 'send' ? 0 : 1)).current;
+  const rowRef = useRef<View>(null);
+  const started = useRef(false);
+
+  const fly = (distance: number) => {
+    if (started.current) return;
+    started.current = true;
+    ty.setValue(distance);
+    shown.setValue(1);
+    Animated.parallel([
+      Animated.spring(ty, { toValue: 0, friction: 10, tension: 65, useNativeDriver: true }),
+      Animated.timing(v, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]).start();
+  };
+
   useEffect(() => {
-    Animated.timing(v, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-  }, [v]);
-  const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [14, 0] });
-  const scale = v.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] });
+    if (anim === 'receive') {
+      Animated.spring(v, { toValue: 1, friction: 8, tension: 70, useNativeDriver: true }).start();
+    }
+    if (anim === 'send') {
+      // Filet de sécurité : si la mesure n'arrive pas, on anime quand même.
+      const t = setTimeout(() => fly(48), 120);
+      return () => clearTimeout(t);
+    }
+    // L'animation ne se joue qu'une fois, à l'apparition de la bulle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onLayout = () => {
+    if (anim !== 'send' || started.current) return;
+    const from = fromY?.() ?? 0;
+    const node: any = rowRef.current;
+    if (!from || !node?.measureInWindow) return;
+    node.measureInWindow((_x: number, y: number) => {
+      // Distance entre la bulle (sa place finale) et le champ de saisie.
+      fly(Math.max(24, Math.min(700, from - y)));
+    });
+  };
+
+  const scale = v.interpolate({
+    inputRange: [0, 1],
+    outputRange: [anim === 'send' ? 0.86 : 0.8, 1],
+  });
+  const opacity =
+    anim === 'send'
+      ? shown
+      : v.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 1, 1], extrapolate: 'clamp' });
+  const translateY =
+    anim === 'send' ? ty : v.interpolate({ inputRange: [0, 1], outputRange: [16, 0] });
   return (
     <Animated.View
+      ref={rowRef}
+      onLayout={onLayout}
       style={[
         styles.bubbleRow,
-        { justifyContent: mine ? 'flex-end' : 'flex-start', opacity: v, transform: [{ translateY }, { scale }] },
+        {
+          justifyContent: mine ? 'flex-end' : 'flex-start',
+          opacity,
+          transformOrigin: mine ? 'right bottom' : 'left bottom',
+          transform: [{ translateY }, { scale }],
+        },
       ]}
     >
       {children}
@@ -67,6 +142,24 @@ function MsgRow({ mine, children }: { mine: boolean; children: React.ReactNode }
 }
 
 export default function Messages() {
+  const tabSpace = useTabBarSpace();
+  // Clavier ouvert : il recouvre la barre d'onglets, le champ se colle au
+  // clavier. Clavier fermé : le champ se pose juste au-dessus de la barre.
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setKeyboardOpen(true),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardOpen(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   const { rows, loading } = useCoupleTable<Message>('messages', 'created_at', false);
   const { rows: savedGifs } = useCoupleTable<SavedGif>('saved_gifs', 'created_at', false);
   const couple = useAuth((s) => s.couple);
@@ -84,13 +177,68 @@ export default function Messages() {
   const [recorderOpen, setRecorderOpen] = useState(false);
   const presence = usePartnerPresence();
 
+  // ── Accusé de lecture ───────────────────────────────────────────────────
+  // J'indique au serveur quand j'ai la messagerie sous les yeux ; l'app de ma
+  // moitié s'en sert pour afficher « Lu à … » sous son dernier message.
+  const focused = useRef(false);
+  const myProfileId = profile?.id;
+  const stampSeen = React.useCallback(() => {
+    if (!myProfileId) return;
+    supabase
+      .from('profiles')
+      .update({ messages_seen_at: new Date().toISOString() })
+      .eq('id', myProfileId)
+      .then(() => {}, () => {});
+  }, [myProfileId]);
+
   // À l'ouverture de Messages : on marque comme lus + on efface la pastille.
   useFocusEffect(
     React.useCallback(() => {
+      focused.current = true;
       markSeen('messages');
       useBadgeRefresh.getState().refresh();
-    }, []),
+      stampSeen();
+      return () => {
+        focused.current = false;
+      };
+    }, [stampSeen]),
   );
+
+  // Quand ma moitié a-t-elle vu la conversation pour la dernière fois ?
+  const partnerId = partner?.id;
+  const [partnerSeenAt, setPartnerSeenAt] = useState<string | null>(
+    partner?.messages_seen_at ?? null,
+  );
+  useEffect(() => {
+    setPartnerSeenAt(partner?.messages_seen_at ?? null);
+  }, [partner?.messages_seen_at]);
+  useEffect(() => {
+    if (!partnerId) return;
+    const ch = supabase
+      .channel(`seen-${partnerId}-${Math.random().toString(36).slice(2, 8)}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${partnerId}` },
+        (payload) => {
+          const at = (payload.new as { messages_seen_at?: string | null }).messages_seen_at;
+          if (at) setPartnerSeenAt(at);
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [partnerId]);
+
+  // Position du champ de saisie à l'écran : point de départ de la bulle envoyée.
+  const composerRef = useRef<View>(null);
+  const composerY = useRef(0);
+  const measureComposer = () => {
+    const node: any = composerRef.current;
+    node?.measureInWindow?.((_x: number, y: number) => {
+      if (y > 0) composerY.current = y;
+    });
+  };
 
   const notLinked = () =>
     Alert.alert('Ta moitié n’est pas reliée', 'Partagez votre code de couple depuis l’accueil pour vous relier.');
@@ -143,6 +291,16 @@ export default function Messages() {
 
   const display = React.useMemo(() => [...pending.filter((t) => !matched(t)), ...rows], [pending, rows]);
 
+  // Mon message le plus récent : c'est lui qui porte « Distribué » / « Lu à … ».
+  const lastMineId = display.find((m) => m.author_id === profile?.id)?.id;
+  const receiptFor = (m: Message): string => {
+    if (m.id.startsWith('temp-')) return 'Envoi…';
+    if (partnerSeenAt && new Date(partnerSeenAt).getTime() >= new Date(m.created_at).getTime()) {
+      return `Lu à ${formatTime(partnerSeenAt)}`;
+    }
+    return 'Distribué';
+  };
+
   // Rappel doux « ça fait 2 jours » : reprogrammé selon le dernier message.
   useEffect(() => {
     if (loading) return;
@@ -178,10 +336,82 @@ export default function Messages() {
     return m;
   }, [rows]);
 
+  // ── Animations d'arrivée ────────────────────────────────────────────────
+  // Seuls les messages apparus APRÈS l'ouverture de l'écran sont animés.
+  const openedAt = useRef(Date.now()).current;
+  // Textes déjà animés via leur bulle provisoire : quand la vraie ligne
+  // serveur la remplace, on ne rejoue pas l'animation.
+  const animatedBodies = useRef(new Set<string>()).current;
+  const animFor = (m: Message, mine: boolean): MsgAnim => {
+    if (m.id.startsWith('temp-')) return 'send';
+    if (new Date(m.created_at).getTime() < openedAt - 2000) return 'none';
+    if (mine && m.body && animatedBodies.has(m.body)) return 'none';
+    return mine ? 'send' : 'receive';
+  };
+
+  // ── « En train d'écrire… » ──────────────────────────────────────────────
+  // Signal éphémère entre les deux téléphones (rien n'est enregistré en base).
+  const [partnerTyping, setPartnerTyping] = useState(false);
+  const typingChannel = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const typingOff = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingSent = useRef(0);
+  const coupleId = couple?.id;
+  const myId = profile?.id;
+  useEffect(() => {
+    if (!coupleId || !myId) return;
+    const ch = supabase
+      .channel(`typing-${coupleId}`, { config: { broadcast: { self: false } } })
+      .on('broadcast', { event: 'typing' }, ({ payload }) => {
+        if (payload?.from === myId) return;
+        if (typingOff.current) clearTimeout(typingOff.current);
+        if (payload?.on) {
+          setPartnerTyping(true);
+          // Sans nouvelles pendant 5 s, on considère qu'elle/il a arrêté.
+          typingOff.current = setTimeout(() => setPartnerTyping(false), 5000);
+        } else {
+          setPartnerTyping(false);
+        }
+      })
+      .subscribe();
+    typingChannel.current = ch;
+    return () => {
+      if (typingOff.current) clearTimeout(typingOff.current);
+      typingChannel.current = null;
+      supabase.removeChannel(ch);
+    };
+  }, [coupleId, myId]);
+
+  const signalTyping = (on: boolean) => {
+    const ch = typingChannel.current;
+    if (!ch || !myId) return;
+    const now = Date.now();
+    // Au plus un signal toutes les 2 s pendant la frappe.
+    if (on && now - lastTypingSent.current < 2000) return;
+    lastTypingSent.current = on ? now : 0;
+    ch.send({ type: 'broadcast', event: 'typing', payload: { from: myId, on } }).catch(() => {});
+  };
+
+  const onChangeDraft = (v: string) => {
+    setText(v);
+    signalTyping(v.trim().length > 0);
+  };
+
+  // Un message de ta moitié vient d'arriver : elle/il n'écrit plus — et si
+  // j'ai l'écran sous les yeux, il est lu.
+  const newestId = rows[0]?.id;
+  useEffect(() => {
+    setPartnerTyping(false);
+    if (focused.current && rows[0] && rows[0].author_id !== myProfileId) stampSeen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newestId]);
+
   const send = async () => {
     const body = text.trim();
     if (!body || !couple || !profile) return;
+    measureComposer();
     setText('');
+    signalTyping(false);
+    animatedBodies.add(body);
     const replyId = replyTo?.id ?? null;
     setReplyTo(null);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -340,9 +570,9 @@ export default function Messages() {
         }
       />
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={{ flex: 1, paddingBottom: keyboardOpen ? 0 : tabSpace }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={90}
+        keyboardVerticalOffset={0}
       >
         {loading && display.length === 0 ? (
           <MessagesSkeleton />
@@ -359,18 +589,27 @@ export default function Messages() {
             data={display}
             keyExtractor={(m) => m.id}
             inverted
+            // Liste inversée : l'en-tête s'affiche tout en bas, sous le dernier message.
+            ListHeaderComponent={partnerTyping ? <TypingBubble /> : null}
+            // Peu de messages : ils se rangent en HAUT de l'écran et la
+            // conversation descend, comme dans Messages (liste inversée →
+            // « flex-end » correspond au haut).
             contentContainerStyle={{
+              flexGrow: 1,
+              justifyContent: 'flex-end',
               paddingHorizontal: spacing.md,
               paddingVertical: spacing.md,
               gap: 4,
             }}
+            keyboardDismissMode="interactive"
+            keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => {
               const mine = item.author_id === profile?.id;
               const src = item.image_url ? gifSource(item.image_url) : null;
               const reactionEmojis = Object.values(item.reactions ?? {});
               const repliedTo = item.reply_to ? msgById[item.reply_to] : undefined;
               return (
-                <MsgRow mine={mine}>
+                <MsgRow mine={mine} anim={animFor(item, mine)} fromY={() => composerY.current}>
                   <Pressable
                     onLongPress={() => setActionMsg(item)}
                     delayLongPress={250}
@@ -447,6 +686,11 @@ export default function Messages() {
                         ) : null}
                       </View>
                     ) : null}
+
+                    {/* Accusé de lecture, sous mon dernier message */}
+                    {item.id === lastMineId ? (
+                      <Text style={styles.receipt}>{receiptFor(item)}</Text>
+                    ) : null}
                   </Pressable>
                 </MsgRow>
               );
@@ -469,25 +713,41 @@ export default function Messages() {
           </View>
         ) : null}
 
-        <View style={styles.inputBar}>
-          <Pressable onPress={() => { setGifOpen(true); setTab(savedGifs.length > 0 ? 'mine' : 'gifs'); }} style={styles.gifBtn}>
+        <View
+          ref={composerRef}
+          onLayout={measureComposer}
+          style={styles.inputBar}
+        >
+          <Pressable
+            onPress={() => { setGifOpen(true); setTab(savedGifs.length > 0 ? 'mine' : 'gifs'); }}
+            style={styles.gifBtn}
+            accessibilityLabel="Envoyer un GIF"
+          >
             <Text style={styles.gifBtnTxt}>GIF</Text>
           </Pressable>
-          <Input
-            placeholder="Message…"
-            value={text}
-            onChangeText={setText}
-            style={{ flex: 1 }}
-            multiline
-            onSubmitEditing={send}
-          />
-          <Pressable
-            onPress={send}
-            disabled={text.trim().length === 0}
-            style={[styles.send, text.trim().length === 0 && { opacity: 0.4 }]}
-          >
-            <Text style={{ fontSize: 20 }}>➤</Text>
-          </Pressable>
+          {/* Champ compact ; le bouton d'envoi n'apparaît que s'il y a du texte. */}
+          <View style={styles.field}>
+            <TextInput
+              placeholder="Message…"
+              placeholderTextColor={colors.texteGris}
+              value={text}
+              onChangeText={onChangeDraft}
+              style={styles.fieldInput}
+              multiline
+              numberOfLines={1}
+            />
+            {text.trim().length > 0 ? (
+              <Pressable
+                onPress={send}
+                hitSlop={8}
+                style={styles.send}
+                accessibilityRole="button"
+                accessibilityLabel="Envoyer"
+              >
+                <Text style={styles.sendArrow}>↑</Text>
+              </Pressable>
+            ) : null}
+          </View>
         </View>
       </KeyboardAvoidingView>
 
@@ -765,16 +1025,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: spacing.sm,
-    padding: spacing.md,
-    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingTop: 8,
+    paddingBottom: 10,
     backgroundColor: colors.creme,
-    borderTopWidth: 1,
-    borderTopColor: colors.bordure,
+  },
+  field: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    minHeight: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: colors.bordure,
+    paddingLeft: 14,
+    paddingRight: 5,
+  },
+  fieldInput: {
+    flex: 1,
+    maxHeight: 120,
+    paddingTop: 9,
+    paddingBottom: 9,
+    fontFamily: fonts.bodyRegular,
+    fontSize: 16,
+    lineHeight: 21,
+    color: colors.texteSombre,
+  },
+  sendArrow: { fontFamily: fonts.bodyBold, fontSize: 18, lineHeight: 20, color: colors.creme },
+  receipt: {
+    alignSelf: 'flex-end',
+    fontFamily: fonts.bodyMedium,
+    fontSize: 10,
+    color: colors.texteGris,
+    marginTop: 3,
+    marginRight: 4,
   },
   gifBtn: {
-    height: 48,
+    height: 40,
     paddingHorizontal: 12,
-    borderRadius: radius.md,
+    borderRadius: 20,
     backgroundColor: colors.cremeDoux,
     alignItems: 'center',
     justifyContent: 'center',
@@ -783,10 +1073,11 @@ const styles = StyleSheet.create({
   },
   gifBtnTxt: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.prune },
   send: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.ambre,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginBottom: 4,
+    backgroundColor: colors.prune,
     alignItems: 'center',
     justifyContent: 'center',
   },

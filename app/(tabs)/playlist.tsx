@@ -22,6 +22,7 @@ import { colors } from '../../src/theme/colors';
 import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useCoupleTable } from '../../src/hooks/useCoupleTable';
 import { useAuth } from '../../src/store/auth';
+import { useTabBarSpace } from '../../src/theme/tabBar';
 import { supabase } from '../../src/lib/supabase';
 import type { Track } from '../../src/types/db';
 import {
@@ -32,6 +33,7 @@ import {
 } from '../../src/lib/music';
 
 export default function Playlist() {
+  const tabSpace = useTabBarSpace();
   const router = useRouter();
   const { rows } = useCoupleTable<Track>('playlist_tracks');
   const couple = useAuth((s) => s.couple);
@@ -94,7 +96,7 @@ export default function Playlist() {
         contentContainerStyle={{
           padding: spacing.lg,
           gap: spacing.sm,
-          paddingBottom: 160,
+          paddingBottom: tabSpace + 110,
         }}
         ListEmptyComponent={
           <EmptyState
@@ -108,7 +110,7 @@ export default function Playlist() {
         )}
       />
 
-      <View style={styles.addBar}>
+      <View style={[styles.addBar, { bottom: tabSpace }]}>
         <Button title="🔎 Chercher une chanson" onPress={() => setSearchOpen(true)} />
       </View>
 
@@ -252,11 +254,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    padding: spacing.md,
-    paddingBottom: spacing.lg,
-    backgroundColor: colors.creme,
-    borderTopWidth: 1,
-    borderTopColor: colors.bordure,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   searchHead: {
     flexDirection: 'row',

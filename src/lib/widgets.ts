@@ -61,7 +61,11 @@ export function syncWidgets(data: WidgetData) {
  * dessin libre partagé (traits vectoriels, dessinés nativement par le widget).
  * Tout est protégé : en cas d'échec, le widget affiche juste un état vide.
  */
-export async function syncMediaWidgets(coupleId?: string | null) {
+export async function syncMediaWidgets(
+  coupleId?: string | null,
+  /** Photo choisie par ta moitié pour TON widget (profiles.widget_photo_path). */
+  pinnedPath?: string | null,
+) {
   if (Platform.OS !== 'ios' || !coupleId) return;
   let storage: any;
   try {
@@ -71,6 +75,36 @@ export async function syncMediaWidgets(coupleId?: string | null) {
     return; // pas de widget dans ce build
   }
   const { supabase } = require('./supabase');
+
+  // 0) Photo choisie par ta moitié : si elle existe, le widget « Photos »
+  //    l'affiche à la place du défilement. Chaîne vide = pas de photo choisie.
+  try {
+    if (pinnedPath) {
+      // On ne retraite l'image que si le choix a changé.
+      if (storage.get?.('pinned_photo_path') !== pinnedPath) {
+        const { data: signed } = await supabase.storage
+          .from('photos')
+          .createSignedUrl(pinnedPath, 60 * 60);
+        if (signed?.signedUrl) {
+          const ImageManipulator = require('expo-image-manipulator');
+          const out = await ImageManipulator.manipulateAsync(
+            signed.signedUrl,
+            [{ resize: { width: 700 } }],
+            { compress: 0.6, base64: true, format: ImageManipulator.SaveFormat.JPEG },
+          );
+          if (out?.base64) {
+            storage.set('pinned_photo_b64', out.base64);
+            storage.set('pinned_photo_path', pinnedPath);
+          }
+        }
+      }
+    } else {
+      storage.set('pinned_photo_b64', '');
+      storage.set('pinned_photo_path', '');
+    }
+  } catch {
+    // on garde l'ancienne photo choisie
+  }
 
   // 1) Dernières photos → vignettes base64 (le widget les fait défiler)
   try {

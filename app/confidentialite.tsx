@@ -6,7 +6,7 @@ import { colors } from '../src/theme/colors';
 import { spacing } from '../src/theme/typography';
 
 const CONTACT = 'support.application1@gmail.com';
-const UPDATED = '17 juillet 2026';
+const UPDATED = '13 novembre 2026';
 
 function P({ children }: { children: React.ReactNode }) {
   return (
@@ -47,7 +47,8 @@ export default function Confidentialite() {
         <H>Les données que nous utilisons</H>
         <P>• Compte : ton adresse e-mail et ton nom d’affichage, pour te connecter.</P>
         <P>
-          • Profil : la ville que tu choisis (et ses coordonnées) pour calculer la distance,
+          • Profil : ta ville (celle que tu choisis, ou ta position si tu actives la
+          position automatique) et ses coordonnées, pour calculer la distance,
           la météo et le fuseau horaire ; ton humeur et ton avatar ; un jeton de notification
           pour t’envoyer les alertes.
         </P>
@@ -79,7 +80,9 @@ export default function Confidentialite() {
         <H>La localisation</H>
         <P>
           La position sert seulement à afficher ta ville, la distance, la météo et le lieu des
-          photos. Fil ne suit jamais ta position en arrière-plan.
+          photos. Si tu actives « Position automatique » dans les Paramètres, Fil relève ta
+          position à l’ouverture de l’app et l’affiche à ta moitié sur votre carte ; tu peux la
+          désactiver à tout moment. Fil ne suit jamais ta position en arrière-plan.
         </P>
 
         <H>Conserver et supprimer</H>

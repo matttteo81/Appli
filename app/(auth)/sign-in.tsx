@@ -14,6 +14,14 @@ import { useAuth } from '../../src/store/auth';
 import { isSupabaseConfigured } from '../../src/lib/supabase';
 import { SupabaseSetupNotice } from '../../src/components/SupabaseSetupNotice';
 
+/**
+ * « Mot de passe oublié » : l'écran est prêt (app/(auth)/mot-de-passe.tsx) mais
+ * le lien reste masqué tant que Supabase ne peut pas envoyer le code par
+ * e-mail. Pour l'activer : brancher un SMTP dans Supabase → Authentication →
+ * Emails, ajouter {{ .Token }} au modèle « Reset password », puis passer à true.
+ */
+const PASSWORD_RESET_ENABLED = false;
+
 export default function SignIn() {
   const signIn = useAuth((s) => s.signIn);
   const loading = useAuth((s) => s.loading);
@@ -78,6 +86,13 @@ export default function SignIn() {
               </ThemedText>
             ) : null}
             <Button title="Se connecter" onPress={onSubmit} loading={loading} />
+            {PASSWORD_RESET_ENABLED ? (
+              <Link href="/(auth)/mot-de-passe" style={{ alignSelf: 'center' }}>
+                <ThemedText variant="body" color={colors.cremeDoux}>
+                  Mot de passe oublié ?
+                </ThemedText>
+              </Link>
+            ) : null}
           </View>
 
           <View style={{ marginTop: spacing.xl, alignItems: 'center' }}>

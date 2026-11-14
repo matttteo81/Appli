@@ -1,0 +1,30 @@
+# Garde la base Supabase éveillée.
+#
+# Sur l'offre gratuite, Supabase met un projet en pause après environ une
+# semaine sans aucune requête : l'app ne peut alors plus se connecter (et la
+# révision Apple échoue). Ce petit appel quotidien suffit à l'éviter.
+#
+# La clé utilisée est la clé « anon » publique, déjà présente dans l'app.
+# À noter : GitHub désactive les tâches planifiées d'un dépôt resté 60 jours
+# sans activité — un simple commit (ou « Run workflow ») les relance.
+name: Garder Supabase éveillé
+
+on:
+  schedule:
+    - cron: '17 6 * * *' # tous les jours à 06:17 UTC
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Appeler la base
+        run: |
+          URL=$(jq -r '.build.production.env.EXPO_PUBLIC_SUPABASE_URL' eas.json)
+          KEY=$(jq -r '.build.production.env.EXPO_PUBLIC_SUPABASE_ANON_KEY' eas.json)
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 \
+            "$URL/rest/v1/couples?select=id&limit=1" \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY")
+          echo "Réponse de la base : $code"
+          test "$code" = "200"

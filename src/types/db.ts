@@ -55,6 +55,10 @@ export type Profile = {
   display_name: string;
   avatar_emoji: string;
   avatar_path: string | null;
+  /** Photo que JE choisis pour le widget « Photos » de ma moitié. */
+  widget_photo_path: string | null;
+  /** Dernière ouverture de la messagerie (accusé de lecture). */
+  messages_seen_at: string | null;
   city_name: string | null;
   city_lat: number | null;
   city_lng: number | null;

@@ -18,6 +18,7 @@ import { PixelFarm } from '../../src/components/PixelFarm';
 import { colors } from '../../src/theme/colors';
 import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useAuth } from '../../src/store/auth';
+import { useTabBarSpace } from '../../src/theme/tabBar';
 import { supabase } from '../../src/lib/supabase';
 import type { Farm, FarmInventory, FarmResident } from '../../src/types/db';
 import { ADULT_AT, FOODS, HATCH_AT, seasonNow, SPECIES_NAMES, stageForFeeds } from '../../src/lib/farmpixel';
@@ -67,6 +68,7 @@ function Celebration() {
 }
 
 export default function FarmScreen() {
+  const tabSpace = useTabBarSpace();
   const couple = useAuth((s) => s.couple);
   const profile = useAuth((s) => s.profile);
 
@@ -296,7 +298,7 @@ export default function FarmScreen() {
       </View>
 
       {/* HUD bas */}
-      <View style={styles.bottom} pointerEvents="box-none">
+      <View style={[styles.bottom, { bottom: tabSpace + 8 }]} pointerEvents="box-none">
         {needsName ? (
           <View style={styles.card}>
             <Text style={styles.hint}>🐣 Il a éclos ! Comment allez-vous l'appeler ?</Text>
@@ -343,7 +345,7 @@ export default function FarmScreen() {
 
       {/* Bouton « Jour de marché » (bas droite, jours de marché uniquement) */}
       {marketOpen ? (
-        <Pressable style={styles.market} onPress={() => { setShopTab('buy'); setShopOpen(true); }}>
+        <Pressable style={[styles.market, { bottom: tabSpace + 140 }]} onPress={() => { setShopTab('buy'); setShopOpen(true); }}>
           <Text style={styles.marketLbl}>Jour de marché</Text>
           <View style={styles.marketBtn}><Text style={{ fontSize: 26 }}>🧺</Text></View>
         </Pressable>

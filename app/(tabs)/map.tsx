@@ -18,6 +18,7 @@ import { fetchWeather } from '../../src/lib/weather';
 import { colors } from '../../src/theme/colors';
 import { fonts, radius, spacing } from '../../src/theme/typography';
 import { useAuth } from '../../src/store/auth';
+import { useTabBarSpace } from '../../src/theme/tabBar';
 import { useCoupleTable } from '../../src/hooks/useCoupleTable';
 import { City, searchCities } from '../../src/lib/cities';
 import { distanceKm } from '../../src/lib/geo';
@@ -97,6 +98,7 @@ export default function MapScreen() {
 }
 
 function MapScreenInner() {
+  const tabSpace = useTabBarSpace();
   const profile = useAuth((s) => s.profile);
   const partner = useAuth((s) => s.partner);
   const updateProfile = useAuth((s) => s.updateProfile);
@@ -349,7 +351,7 @@ function MapScreenInner() {
       </View>
 
       {/* Contrôles position (pastilles compactes) */}
-      <View style={styles.bottomBar} pointerEvents="box-none">
+      <View style={[styles.bottomBar, { bottom: tabSpace + 8 }]} pointerEvents="box-none">
         <Pressable
           onPress={useExactLocation}
           disabled={locating}

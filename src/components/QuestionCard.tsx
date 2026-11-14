@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Card, Input, ThemedText } from './ui';
 import { colors } from '../theme/colors';
 import { fonts, radius, spacing } from '../theme/typography';
@@ -14,6 +15,7 @@ export function QuestionCard() {
   const couple = useAuth((s) => s.couple);
   const profile = useAuth((s) => s.profile);
   const partner = useAuth((s) => s.partner);
+  const router = useRouter();
   const { rows } = useCoupleTable<DailyAnswer>('daily_answers');
 
   const { text, dateKey } = useMemo(() => questionForToday(), []);
@@ -86,6 +88,19 @@ export function QuestionCard() {
           )}
         </View>
       )}
+
+      {rows.length > 0 ? (
+        <Pressable
+          onPress={() => router.push('/questions')}
+          hitSlop={8}
+          style={{ marginTop: spacing.md, alignSelf: 'flex-start' }}
+          accessibilityRole="link"
+        >
+          <ThemedText variant="bodyMedium" color={colors.ambre}>
+            Nos réponses précédentes ›
+          </ThemedText>
+        </Pressable>
+      ) : null}
     </Card>
   );
 }
